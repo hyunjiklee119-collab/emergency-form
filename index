@@ -81,6 +81,9 @@
 </div>
 
 <script>
+    // **여기에 Google Apps Script에서 복사한 웹 앱 URL을 붙여넣으세요.**
+    const WEB_APP_URL = 'YOUR_WEB_APP_URL_HERE'; // 이 부분을 반드시 수정하세요!
+
     document.addEventListener('DOMContentLoaded', (event) => {
         // 인원 계산 스크립트
         const totalInput = document.getElementById('totalMembers');
@@ -99,10 +102,10 @@
         // 부서 정보 데이터
         const divisions = {
             'SYSTEM사업부': ['영업팀', 'CS팀', '제조팀', '품질G', '생산기술팀'],
-            'INFRA사업부': null, // 직접 입력
+            'INFRA사업부': null,
             '경영지원실': ['재무팀', '인사팀', '기획G', '정보전략팀', '준법경영G'],
             '직속': ['연구소', '구매팀', '안전환경팀', '글로벌TF'],
-            '기타/협력사': null // 직접 입력
+            '기타/협력사': null
         };
 
         // 임원진 보고 담당 팀 정보
@@ -137,11 +140,7 @@
                 teamTextGroup.style.display = 'block';
                 teamText.required = true;
                 teamSelect.required = false;
-                if(selectedDivision === 'INFRA사업부') {
-                     teamText.placeholder = '회의/방문 시 해당 팀을 직접 입력하세요';
-                } else {
-                     teamText.placeholder = '부서명을 직접 입력하세요';
-                }
+                teamText.placeholder = (selectedDivision === 'INFRA사업부') ? '회의/방문 시 해당 팀을 직접 입력하세요' : '부서명을 직접 입력하세요';
             } else if (divisions[selectedDivision] && divisions[selectedDivision].length > 0) {
                 teamSelectGroup.style.display = 'block';
                 teamTextGroup.style.display = 'none';
@@ -173,7 +172,7 @@
             }
         });
 
-        // 폼 제출 이벤트
+        // 폼 제출 이벤트 (AJAX로 데이터 전송)
         document.getElementById('evacuationForm').addEventListener('submit', function(event) {
             event.preventDefault();
             
@@ -194,18 +193,42 @@
                  return;
             }
 
-            const formData = {
-                reporterName: document.getElementById('reporterName').value,
-                reporterPhone: document.getElementById('reporterPhone').value,
-                division: selectedDivision,
-                team: selectedTeam,
-                totalMembers: document.getElementById('totalMembers').value,
-                evacuatedMembers: document.getElementById('evacuatedMembers').value,
-                notEvacuatedMembers: document.getElementById('notEvacuatedMembers').value
-            };
-            
-            console.log("보고 데이터:", formData);
-            alert('비상대피인원 보고가 성공적으로 접수되었습니다.');
+            const formData = new FormData(this);
+            // 텍스트 입력 필드가 활성화된 경우에만 'team-select' 값을 formData에서 제거
+            if (teamTextGroup.style.display === 'block') {
+                 formData.delete('team-select');
+                 formData.set('team', selectedTeam);
+            } else {
+                 formData.delete('team-text');
+                 formData.set('team', selectedTeam);
+            }
+
+            const submitButton = this.querySelector('button[type="submit"]');
+            submitButton.disabled = true;
+            submitButton.textContent = '보고 중...';
+
+            fetch(WEB_APP_URL, {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.result === 'success') {
+                    alert('비상대피인원 보고가 성공적으로 접수되었습니다.');
+                    this.reset();
+                } else {
+                    alert('보고 제출 중 오류가 발생했습니다. 다시 시도해주세요.');
+                    console.error('Error:', data.message);
+                }
+            })
+            .catch(error => {
+                alert('네트워크 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
+                console.error('Fetch error:', error);
+            })
+            .finally(() => {
+                submitButton.disabled = false;
+                submitButton.textContent = '보고하기';
+            });
         });
     });
 </script>
