@@ -1,236 +1,138 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>비상대피인원 보고</title>
-    <style>
-        body { font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif; margin: 0; padding: 20px; background-color: #f0f2f5; }
-        .container { max-width: 600px; margin: auto; padding: 20px; border-radius: 12px; background-color: #ffffff; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); }
-        h2 { text-align: center; color: #1a1a1a; margin-bottom: 25px; font-size: 24px; }
-        .form-group { margin-bottom: 20px; }
-        label { display: block; margin-bottom: 8px; font-weight: 600; color: #333; font-size: 16px; }
-        input[type="text"], input[type="number"], select { width: 100%; padding: 12px; box-sizing: border-box; border: 1px solid #ddd; border-radius: 8px; font-size: 16px; }
-        input[type="checkbox"] { margin-right: 8px; width: 18px; height: 18px; vertical-align: middle; }
-        button { width: 100%; padding: 15px; background-color: #007bff; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 18px; font-weight: bold; transition: background-color 0.2s ease; }
-        button:hover { background-color: #0056b3; }
-        hr { border: 0; border-top: 1px solid #eee; margin: 25px 0; }
-        small { display: block; margin-top: 5px; color: #666; font-size: 12px; }
-        .alert-message { color: #d9534f; background-color: #f2dede; border: 1px solid #ebccd1; padding: 10px; border-radius: 5px; margin-top: 10px; font-size: 14px; }
-        #team-text-group { display: none; }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>비상대피 보고폼</title>
+  <style>
+    body { font-family: sans-serif; margin: 15px; background:#f9f9f9; }
+    h2 { text-align:center; margin-bottom: 15px; }
+    .form-box { max-width: 480px; margin:auto; background:#fff; padding:15px; border-radius:10px; box-shadow:0 2px 5px rgba(0,0,0,0.2);}
+    label { display:block; margin-top:10px; font-weight:bold; }
+    input, select, textarea, button { width:100%; margin-top:5px; padding:8px; font-size:1rem; border-radius:5px; border:1px solid #ccc; }
+    textarea { resize:none; }
+    button { background:#007bff; color:#fff; border:none; cursor:pointer; margin-top:15px; }
+    button:hover { background:#0056b3; }
+    .note-tip { font-size:0.9rem; color:#555; margin-top:5px; }
+    table { width:100%; border-collapse: collapse; margin-top:15px; }
+    th, td { border:1px solid #ccc; padding:6px; text-align:center; font-size:0.9rem; }
+    th { background:#f0f0f0; }
+    .note-marker { color:red; cursor:pointer; font-weight:bold; }
+  </style>
 </head>
 <body>
 
-<div class="container">
-    <h2>비상대피인원 보고</h2>
-    <form id="evacuationForm">
-        <div class="form-group">
-            <label for="reporterName">보고자 성명</label>
-            <input type="text" id="reporterName" name="reporterName" required>
-        </div>
-        <div class="form-group">
-            <label for="reporterPhone">연락처</label>
-            <input type="text" id="reporterPhone" name="reporterPhone" placeholder="010-XXXX-XXXX" required>
-        </div>
-        
-        <div class="form-group">
-            <label for="division">소속 사업부/실</label>
-            <select id="division" name="division" required>
-                <option value="">선택하세요</option>
-            </select>
-        </div>
-        <div class="form-group" id="team-select-group">
-            <label for="team-select">세부 팀/부서명</label>
-            <select id="team-select" name="team-select" required>
-                <option value="">사업부/실을 먼저 선택하세요</option>
-            </select>
-        </div>
-        <div class="form-group" id="team-text-group">
-            <label for="team-text">세부 팀/부서명</label>
-            <input type="text" id="team-text" name="team-text" placeholder="부서명을 직접 입력하세요">
-        </div>
+<h2>비상대피 인원 보고</h2>
 
-        <div id="guidance-message" class="alert-message" style="display:none;"></div>
+<div class="form-box">
+  <form id="reportForm">
+    <label>보고자 성명</label>
+    <input type="text" id="reporter" placeholder="성명 입력" required>
 
-        <hr>
+    <label>연락처</label>
+    <input type="text" id="contact" placeholder="연락처 입력" required>
 
-        <div class="form-group">
-            <label for="totalMembers">대피대상자 (총 인원)</label>
-            <input type="number" id="totalMembers" name="totalMembers" min="0" required>
-        </div>
-        <div class="form-group">
-            <label for="evacuatedMembers">대피완료 인원</label>
-            <input type="number" id="evacuatedMembers" name="evacuatedMembers" min="0" required>
-        </div>
-        <div class="form-group">
-            <label for="notEvacuatedMembers">미대피 인원</label>
-            <input type="number" id="notEvacuatedMembers" name="notEvacuatedMembers" readonly>
-            <small>※ 대피대상자 - 대피완료 인원이 자동으로 계산됩니다.</small>
-        </div>
-        
-        <hr>
+    <label>소속 사업부/실</label>
+    <select id="division" required>
+      <option value="">-- 선택 --</option>
+      <option value="생산">생산</option>
+      <option value="품질">품질</option>
+      <option value="안전">안전</option>
+    </select>
 
-        <div class="form-group">
-            <input type="checkbox" id="privacyConsent" name="privacyConsent" required>
-            <label for="privacyConsent" style="display: inline;">개인정보 수집 및 이용에 동의합니다.</label>
-        </div>
+    <label>세부 팀/부서명</label>
+    <input type="text" id="department" placeholder="부서명 입력" required>
 
-        <button type="submit">보고하기</button>
-    </form>
+    <label>대피대상자</label>
+    <input type="number" id="total" min="0" required>
+
+    <label>대피완료 인원</label>
+    <input type="number" id="evacuated" min="0" required>
+
+    <label>특이사항 (있으면 입력)</label>
+    <textarea id="note" rows="3" placeholder="특이사항 입력 시 결과표에 * 표시"></textarea>
+    <div class="note-tip">* 표시는 특이사항 입력 시 표시됩니다.</div>
+
+    <button type="submit">제출</button>
+  </form>
+</div>
+
+<div class="form-box">
+  <h3>제출 결과</h3>
+  <table id="resultTable">
+    <thead>
+      <tr>
+        <th>보고자 성명</th>
+        <th>연락처</th>
+        <th>소속 사업부/실</th>
+        <th>세부 팀/부서명</th>
+        <th>대피대상자</th>
+        <th>대피완료 인원</th>
+        <th>미대피 인원</th>
+        <th>특이사항</th>
+      </tr>
+    </thead>
+    <tbody>
+    </tbody>
+  </table>
 </div>
 
 <script>
-    // **여기에 Google Apps Script에서 복사한 웹 앱 URL을 붙여넣으세요.**
-    const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbyNjfbZN-_LpmDRep4FKOWuBJHQfDqTGYS4i7r9d3BvHzxrEC0x1ynKr8F7KSqOr8O1ig/exec'; // 이 부분을 반드시 수정하세요!
+  const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxKiEgwQn7gwAz9PHtYEruleGo3_H73Pf7DbZsMB8YpBNVNvKhGRIKQPplLQQSEs9HkFQ/exec";
 
-    document.addEventListener('DOMContentLoaded', (event) => {
-        // 인원 계산 스크립트
-        const totalInput = document.getElementById('totalMembers');
-        const evacuatedInput = document.getElementById('evacuatedMembers');
-        const notEvacuatedInput = document.getElementById('notEvacuatedMembers');
+  const tableBody = document.querySelector("#resultTable tbody");
 
-        function updateNotEvacuated() {
-            const total = parseInt(totalInput.value) || 0;
-            const evacuated = parseInt(evacuatedInput.value) || 0;
-            notEvacuatedInput.value = total - evacuated >= 0 ? total - evacuated : 0;
-        }
+  document.getElementById("reportForm").addEventListener("submit", async function(e){
+    e.preventDefault();
 
-        totalInput.addEventListener('input', updateNotEvacuated);
-        evacuatedInput.addEventListener('input', updateNotEvacuated);
+    const reporter = document.getElementById("reporter").value;
+    const contact = document.getElementById("contact").value;
+    const division = document.getElementById("division").value;
+    const department = document.getElementById("department").value;
+    const total = parseInt(document.getElementById("total").value);
+    const evacuated = parseInt(document.getElementById("evacuated").value);
+    const remaining = total - evacuated;
+    const note = document.getElementById("note").value;
 
-        // 부서 정보 데이터
-        const divisions = {
-            'SYSTEM사업부': ['영업팀', 'CS팀', '제조팀', '품질G', '생산기술팀'],
-            'INFRA사업부': null,
-            '경영지원실': ['재무팀', '인사팀', '기획G', '정보전략팀', '준법경영G'],
-            '직속': ['연구소', '구매팀', '안전환경팀', '글로벌TF'],
-            '기타/협력사': null
-        };
+    const data = {
+      reporter, contact, division, department,
+      total, evacuated, remaining, note
+    };
 
-        // 임원진 보고 담당 팀 정보
-        const executiveReportTeams = {
-            '인사팀': '인사팀은 **대표이사, 경영지원실장** 인원을 포함하여 보고합니다.',
-            '영업팀': '영업팀은 **SYSTEM사업부장** 인원을 포함하여 보고합니다.'
-        };
+    try {
+      const res = await fetch(WEBAPP_URL, {
+        method: "POST",
+        body: JSON.stringify(data),
+        headers: { "Content-Type": "application/json" }
+      });
+      const result = await res.json();
+      if(result.result === "success"){
+        alert("보고가 제출되었습니다.");
 
-        const divisionSelect = document.getElementById('division');
-        const teamSelectGroup = document.getElementById('team-select-group');
-        const teamSelect = document.getElementById('team-select');
-        const teamTextGroup = document.getElementById('team-text-group');
-        const teamText = document.getElementById('team-text');
-        const guidanceMessage = document.getElementById('guidance-message');
+        // 테이블에 추가
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${reporter}</td>
+          <td>${contact}</td>
+          <td>${division}</td>
+          <td>${department}</td>
+          <td>${total}</td>
+          <td>${evacuated}</td>
+          <td>${remaining}</td>
+          <td>${note ? '<span class="note-marker" onclick="alert(\''+note.replace(/'/g,"\\'")+'\')">*</span>' : ''}</td>
+        `;
+        tableBody.appendChild(tr);
 
-        // 사업부 옵션 동적 생성
-        for (const divisionName in divisions) {
-            const option = document.createElement('option');
-            option.value = divisionName;
-            option.textContent = divisionName;
-            divisionSelect.appendChild(option);
-        }
-
-        // 사업부 선택 시 세부 부서명 옵션 업데이트 및 입력 방식 변경
-        divisionSelect.addEventListener('change', () => {
-            const selectedDivision = divisionSelect.value;
-            teamSelect.innerHTML = '<option value="">선택하세요</option>';
-            guidanceMessage.style.display = 'none';
-
-            if (selectedDivision === 'INFRA사업부' || selectedDivision === '기타/협력사') {
-                teamSelectGroup.style.display = 'none';
-                teamTextGroup.style.display = 'block';
-                teamText.required = true;
-                teamSelect.required = false;
-                teamText.placeholder = (selectedDivision === 'INFRA사업부') ? '회의/방문 시 해당 팀을 직접 입력하세요' : '부서명을 직접 입력하세요';
-            } else if (divisions[selectedDivision] && divisions[selectedDivision].length > 0) {
-                teamSelectGroup.style.display = 'block';
-                teamTextGroup.style.display = 'none';
-                teamText.required = false;
-                teamSelect.required = true;
-
-                divisions[selectedDivision].forEach(team => {
-                    const option = document.createElement('option');
-                    option.value = team;
-                    option.textContent = team;
-                    teamSelect.appendChild(option);
-                });
-            } else {
-                teamSelectGroup.style.display = 'none';
-                teamTextGroup.style.display = 'none';
-                teamText.required = false;
-                teamSelect.required = false;
-            }
-        });
-
-        // 팀 선택 시 안내 멘트 표시 로직
-        teamSelect.addEventListener('change', () => {
-            const selectedTeam = teamSelect.value;
-            if (executiveReportTeams[selectedTeam]) {
-                guidanceMessage.innerHTML = '※ ' + executiveReportTeams[selectedTeam];
-                guidanceMessage.style.display = 'block';
-            } else {
-                guidanceMessage.style.display = 'none';
-            }
-        });
-
-        // 폼 제출 이벤트 (AJAX로 데이터 전송)
-        document.getElementById('evacuationForm').addEventListener('submit', function(event) {
-            event.preventDefault();
-            
-            const selectedDivision = divisionSelect.value;
-            const selectedTeam = teamSelectGroup.style.display !== 'none' ? teamSelect.value : teamText.value;
-
-            // 유효성 검사
-            if (!selectedDivision) {
-                alert('소속 사업부/실을 선택해주세요.');
-                return;
-            }
-            if (teamSelectGroup.style.display !== 'none' && !selectedTeam) {
-                 alert('세부 팀/부서명을 선택해주세요.');
-                 return;
-            }
-            if (teamTextGroup.style.display !== 'none' && !selectedTeam) {
-                 alert('세부 팀/부서명을 입력해주세요.');
-                 return;
-            }
-
-            const formData = new FormData(this);
-            // 텍스트 입력 필드가 활성화된 경우에만 'team-select' 값을 formData에서 제거
-            if (teamTextGroup.style.display === 'block') {
-                 formData.delete('team-select');
-                 formData.set('team', selectedTeam);
-            } else {
-                 formData.delete('team-text');
-                 formData.set('team', selectedTeam);
-            }
-
-            const submitButton = this.querySelector('button[type="submit"]');
-            submitButton.disabled = true;
-            submitButton.textContent = '보고 중...';
-
-            fetch(WEB_APP_URL, {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.result === 'success') {
-                    alert('비상대피인원 보고가 성공적으로 접수되었습니다.');
-                    this.reset();
-                } else {
-                    alert('보고 제출 중 오류가 발생했습니다. 다시 시도해주세요.');
-                    console.error('Error:', data.message);
-                }
-            })
-            .catch(error => {
-                alert('네트워크 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
-                console.error('Fetch error:', error);
-            })
-            .finally(() => {
-                submitButton.disabled = false;
-                submitButton.textContent = '보고하기';
-            });
-        });
-    });
+        this.reset();
+      } else {
+        alert("제출에 실패했습니다.");
+      }
+    } catch(err) {
+      console.error(err);
+      alert("오류 발생: " + err);
+    }
+  });
 </script>
+
 </body>
 </html>
