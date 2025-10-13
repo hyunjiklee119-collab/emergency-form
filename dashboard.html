@@ -14,6 +14,18 @@
         .loading { text-align: center; padding: 20px; }
         .loader { border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; width: 30px; height: 30px; animation: spin 2s linear infinite; margin: 0 auto; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* 새로 추가된 스타일 */
+        .data-table-container { max-width: 900px; margin: 20px auto; background: #fff; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        .filter-container { display: flex; justify-content: flex-end; align-items: center; gap: 10px; margin-bottom: 15px; }
+        .filter-container input[type="date"] { padding: 8px; border: 1px solid #ccc; border-radius: 6px; }
+        .filter-container button { padding: 8px 15px; border: none; background: #007bff; color: #fff; border-radius: 6px; cursor: pointer; }
+        .filter-container button:hover { background: #0056b3; }
+        .report-table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        .report-table th, .report-table td { border: 1px solid #ddd; padding: 10px; text-align: left; font-size: 0.9rem; }
+        .report-table th { background-color: #f2f2f2; font-weight: bold; }
+        .report-table tbody tr:nth-child(even) { background-color: #f9f9f9; }
+        .no-data { text-align: center; color: #888; padding: 20px; }
     </style>
 </head>
 <body>
@@ -42,24 +54,53 @@
     <p>데이터를 불러오는 중...</p>
 </div>
 
+<div class="data-table-container">
+    <div class="filter-container">
+        <label for="startDate">시작일:</label>
+        <input type="date" id="startDate">
+        <label for="endDate">종료일:</label>
+        <input type="date" id="endDate">
+        <button onclick="fetchFilteredData()">조회</button>
+    </div>
+    <table class="report-table">
+        <thead>
+            <tr>
+                <th>보고일시</th>
+                <th>보고자</th>
+                <th>소속</th>
+                <th>대피완료</th>
+                <th>미대피</th>
+                <th>특이사항</th>
+            </tr>
+        </thead>
+        <tbody id="reportTableBody">
+            </tbody>
+    </table>
+    <div id="noDataMessage" class="no-data" style="display:none;">
+        해당 기간에 보고된 데이터가 없습니다.
+    </div>
+</div>
+
 <script>
     // 이 URL은 `code.gs`의 GET 요청을 처리할 웹 앱 URL로 변경하세요.
-    // POST 요청 URL과 동일합니다.
     const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbx47lnZ0IU12-WtAzx_fqNaeGAybSr24fK19nAQ76unQ57xEli5zgbIwSbEr20AKW6L/exec";
     
-    const totalCountEl = document.getElementById("totalCount");
-    const evacuatedCountEl = document.getElementById("evacuatedCount");
-    const remainingCountEl = document.getElementById("remainingCount");
-    const visitorCountEl = document.getElementById("visitorCount");
-    const lastUpdatedEl = document.getElementById("lastUpdated");
-    const loadingMessageEl = document.getElementById("loadingMessage");
-    const dashboardContainer = document.getElementById("dashboard");
+    // ... (기존 변수 선언) ...
+    const reportTableBody = document.getElementById("reportTableBody");
+    const noDataMessage = document.getElementById("noDataMessage");
+    const startDateInput = document.getElementById("startDate");
+    const endDateInput = document.getElementById("endDate");
 
+    // 오늘 날짜로 필터 기본값 설정
+    const today = new Date().toISOString().slice(0, 10);
+    startDateInput.value = today;
+    endDateInput.value = today;
+
+    // ... (기존 fetchData 함수) ...
     async function fetchData() {
         loadingMessageEl.style.display = 'block';
         dashboardContainer.style.display = 'none';
         try {
-            // GET 요청은 CORS Preflight가 필요 없으므로, 헤더를 명시할 필요가 없습니다.
             const response = await fetch(WEBAPP_URL);
             const result = await response.json();
             
@@ -83,11 +124,52 @@
         }
     }
 
-    // 페이지 로드 시 즉시 데이터 불러오기
-    fetchData();
+    // 필터링된 데이터를 가져오는 함수
+    async function fetchFilteredData() {
+        reportTableBody.innerHTML = '';
+        noDataMessage.style.display = 'none';
 
-    // 10초마다 데이터 새로고침
-    setInterval(fetchData, 10000);
+        const startDate = startDateInput.value;
+        const endDate = endDateInput.value;
+
+        try {
+            const response = await fetch(`${WEBAPP_URL}?action=getReports&startDate=${startDate}&endDate=${endDate}`);
+            const result = await response.json();
+
+            if (result.result === "success") {
+                if (result.reports.length > 0) {
+                    result.reports.forEach(report => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${report.date}</td>
+                            <td>${report.reporter}</td>
+                            <td>${report.division} / ${report.department}</td>
+                            <td>${report.evacuated}</td>
+                            <td>${report.remaining}</td>
+                            <td>${report.note || ''}</td>
+                        `;
+                        reportTableBody.appendChild(row);
+                    });
+                } else {
+                    noDataMessage.style.display = 'block';
+                }
+            } else {
+                console.error("API 오류:", result.error);
+                noDataMessage.textContent = "데이터를 불러오는 중 오류가 발생했습니다.";
+                noDataMessage.style.display = 'block';
+            }
+        } catch (error) {
+            console.error("데이터 로딩 실패:", error);
+            noDataMessage.textContent = "네트워크 연결 오류입니다.";
+            noDataMessage.style.display = 'block';
+        }
+    }
+
+    // 페이지 로드 시 즉시 실행
+    fetchData();
+    fetchFilteredData();
+    setInterval(fetchData, 10000); // 10초마다 스코어 카드만 새로고침
+
 </script>
 
 </body>
