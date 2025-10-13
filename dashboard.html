@@ -16,15 +16,19 @@
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); 
         }
 
-        /* 모바일 레이아웃을 위한 미디어 쿼리 */
-        @media (max-width: 600px) {
+        /* 모바일 레이아웃 수정 */
+        @media (max-width: 768px) {
             .dashboard-container {
-                grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); /* 2-3개로 표기 */
+                grid-template-columns: repeat(3, 1fr); /* 3개로 표기 */
+            }
+            .score-card:nth-child(4) {
+                display: none; /* 내방객 인원 숨기기 */
             }
         }
         @media (max-width: 480px) {
             .dashboard-container {
                 grid-template-columns: 1fr; /* 1개로 표기 */
+                padding: 0 10px; /* 좌우 여백 추가 */
             }
         }
 
@@ -64,6 +68,13 @@
         .pagination { display: flex; justify-content: center; align-items: center; gap: 5px; margin-top: 20px; }
         .page-btn { padding: 8px 12px; border: 1px solid #ccc; border-radius: 4px; background: #fff; cursor: pointer; }
         .page-btn.active { background: #007bff; color: #fff; border-color: #007bff; }
+
+        /* 팝업 스타일 */
+        .modal { display: none; position: fixed; z-index: 100; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.4); }
+        .modal-content { background-color: #fefefe; margin: 15% auto; padding: 20px; border: 1px solid #888; width: 80%; max-width: 500px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.2); }
+        .close-btn { color: #aaa; float: right; font-size: 28px; font-weight: bold; }
+        .close-btn:hover, .close-btn:focus { color: #000; text-decoration: none; cursor: pointer; }
+        .note-popup-content { white-space: pre-wrap; word-wrap: break-word; }
     </style>
 </head>
 <body>
@@ -82,6 +93,10 @@
         <h3>미대피 인원</h3>
         <p class="value" id="remainingCount">-</p>
     </div>
+    <div class="score-card">
+        <h3>내방객 인원</h3>
+        <p class="value" id="visitorCount">-</p>
+    </div>
 </div>
 <div id="lastUpdated"></div>
 <div class="loading" id="loadingMessage">
@@ -95,7 +110,7 @@
         <input type="date" id="startDate">
         <label for="endDate">종료일:</label>
         <input type="date" id="endDate">
-        <button onclick="fetchFilteredData()">조회</button>
+        <button onclick="fetchData()">조회</button>
     </div>
     <table class="report-table">
         <thead>
@@ -109,7 +124,7 @@
             </tr>
         </thead>
         <tbody id="reportTableBody">
-        </tbody>
+                    </tbody>
     </table>
     <div id="noDataMessage" class="no-data" style="display:none;">
         해당 기간에 보고된 데이터가 없습니다.
@@ -117,8 +132,15 @@
     <div class="pagination" id="pagination"></div>
 </div>
 
+<div id="noteModal" class="modal">
+    <div class="modal-content">
+        <span class="close-btn">&times;</span>
+        <h3>특이사항 상세 내용</h3>
+        <p id="notePopupContent" class="note-popup-content"></p>
+    </div>
+</div>
+
 <script>
-    // 이 URL을 `code.gs`의 웹 앱 URL로 변경하세요.
     const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbysncTbZ4pE6A4o4acDRaJ3SXXzWE5SwmkIUd3-Vzc-TB7tvNTomUs6fSpEYFLLiWks/exec";
     
     const totalCountEl = document.getElementById("totalCount");
@@ -133,6 +155,9 @@
     const startDateInput = document.getElementById("startDate");
     const endDateInput = document.getElementById("endDate");
     const paginationContainer = document.getElementById("pagination");
+    const noteModal = document.getElementById("noteModal");
+    const closeBtn = document.querySelector(".close-btn");
+    const notePopupContent = document.getElementById("notePopupContent");
 
     const today = new Date().toISOString().slice(0, 10);
     startDateInput.value = today;
@@ -141,71 +166,66 @@
     let allReports = [];
     const itemsPerPage = 10;
     let currentPage = 1;
+    let totalPages = 1;
 
-    async function fetchData() {
+    async function fetchData(page = 1) {
         loadingMessageEl.style.display = 'block';
         dashboardContainer.style.display = 'none';
+
+        const startDate = startDateInput.value;
+        const endDate = endDateInput.value;
+
         try {
-            const response = await fetch(WEBAPP_URL);
+            const response = await fetch(`${WEBAPP_URL}?action=getReports&startDate=${startDate}&endDate=${endDate}`);
             const result = await response.json();
             
             if (result.result === "success") {
-                const data = result.data;
-                totalCountEl.textContent = data.total;
-                evacuatedCountEl.textContent = data.evacuated;
-                remainingCountEl.textContent = data.remaining;
-                visitorCountEl.textContent = data.visitorTotal;
-                lastUpdatedEl.textContent = `마지막 업데이트: ${new Date().toLocaleTimeString()}`;
+                const data = result.data;
+                totalCountEl.textContent = data.total;
+                evacuatedCountEl.textContent = data.evacuated;
+                remainingCountEl.textContent = data.remaining;
+                visitorCountEl.textContent = data.visitorTotal;
+                lastUpdatedEl.textContent = `마지막 업데이트: ${new Date().toLocaleTimeString()}`;
+
+                allReports = result.reports;
+                currentPage = page;
+                displayReports();
             } else {
                 console.error("API 오류:", result.error);
                 totalCountEl.textContent = "에러";
+                noDataMessage.textContent = "데이터를 불러오는 중 오류가 발생했습니다.";
+                noDataMessage.style.display = 'block';
             }
         } catch (error) {
             console.error("데이터 로딩 실패:", error);
             totalCountEl.textContent = "연결 오류";
+            noDataMessage.textContent = "네트워크 연결 오류입니다.";
+            noDataMessage.style.display = 'block';
         } finally {
             loadingMessageEl.style.display = 'none';
             dashboardContainer.style.display = 'grid';
         }
     }
 
-    async function fetchAllReports() {
-        try {
-            const response = await fetch(`${WEBAPP_URL}?action=getReports`);
-            const result = await response.json();
-            if (result.result === "success") {
-                allReports = result.reports;
-                displayReports(allReports, 1);
-            } else {
-                console.error("API 오류:", result.error);
-                noDataMessage.textContent = "데이터를 불러오는 중 오류가 발생했습니다.";
-                noDataMessage.style.display = 'block';
-            }
-        } catch (error) {
-            console.error("데이터 로딩 실패:", error);
-            noDataMessage.textContent = "네트워크 연결 오류입니다.";
-            noDataMessage.style.display = 'block';
-        }
-    }
-
-    function displayReports(reports, page = 1) {
+    function displayReports() {
         reportTableBody.innerHTML = '';
         noDataMessage.style.display = 'none';
 
-        const startIndex = (page - 1) * itemsPerPage;
+        const startIndex = (currentPage - 1) * itemsPerPage;
         const endIndex = startIndex + itemsPerPage;
-        const reportsToDisplay = reports.slice(startIndex, endIndex);
+        const reportsToDisplay = allReports.slice(startIndex, endIndex);
 
         if (reportsToDisplay.length > 0) {
             reportsToDisplay.forEach(report => {
                 const row = document.createElement('tr');
+                const noteContent = report.note ? `<span style="cursor:pointer;" onclick="showNotePopup('${report.note.replace(/'/g, "\\'")}')">*</span>` : '';
                 row.innerHTML = `
                     <td>${report.date}</td>
                     <td>${report.reporter}</td>
                     <td>${report.division} / ${report.department}</td>
                     <td>${report.evacuated}</td>
                     <td>${report.remaining}</td>
-                    <td>${report.note || ''}</td>
+                    <td>${noteContent}</td>
                 `;
                 reportTableBody.appendChild(row);
             });
@@ -213,12 +233,17 @@
             noDataMessage.style.display = 'block';
         }
 
-        renderPagination(reports.length, page);
+        renderPagination();
     }
 
-    function renderPagination(totalItems, currentPage) {
+    function showNotePopup(note) {
+        notePopupContent.textContent = note;
+        noteModal.style.display = 'block';
+    }
+
+    function renderPagination() {
         paginationContainer.innerHTML = '';
-        const totalPages = Math.ceil(totalItems / itemsPerPage);
+        totalPages = Math.ceil(allReports.length / itemsPerPage);
 
         for (let i = 1; i <= totalPages; i++) {
             const pageBtn = document.createElement('button');
@@ -227,39 +252,27 @@
             if (i === currentPage) {
                 pageBtn.classList.add('active');
             }
-            pageBtn.addEventListener('click', () => displayReports(allReports, i));
+            pageBtn.addEventListener('click', () => {
+                currentPage = i;
+                displayReports();
+            });
             paginationContainer.appendChild(pageBtn);
         }
     }
 
-    async function fetchFilteredData() {
-        const startDate = startDateInput.value;
-        const endDate = endDateInput.value;
+    closeBtn.onclick = function() {
+        noteModal.style.display = 'none';
+    }
 
-        try {
-            const response = await fetch(`${WEBAPP_URL}?action=getReports&startDate=${startDate}&endDate=${endDate}`);
-            const result = await response.json();
-
-            if (result.result === "success") {
-                allReports = result.reports;
-                displayReports(allReports, 1);
-            } else {
-                console.error("API 오류:", result.error);
-                noDataMessage.textContent = "데이터를 불러오는 중 오류가 발생했습니다.";
-                noDataMessage.style.display = 'block';
-            }
-        } catch (error) {
-            console.error("데이터 로딩 실패:", error);
-            noDataMessage.textContent = "네트워크 연결 오류입니다.";
-            noDataMessage.style.display = 'block';
-        }
-    }
+    window.onclick = function(event) {
+        if (event.target == noteModal) {
+            noteModal.style.display = 'none';
+        }
+    }
 
     // 페이지 로드 시 즉시 실행
     fetchData();
-    fetchAllReports(); // 최초 로드 시 전체 데이터 불러오기
-    setInterval(fetchData, 10000); // 10초마다 스코어 카드만 새로고침
-
+    setInterval(fetchData, 10000); // 10초마다 데이터 새로고침
 </script>
 
 </body>
