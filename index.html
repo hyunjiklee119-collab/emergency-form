@@ -105,7 +105,7 @@
 <script>
     // 이 URL을 앱스크립트 배포 URL로 변경하세요.
     const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbysncTbZ4pE6A4o4acDRaJ3SXXzWE5SwmkIUd3-Vzc-TB7tvNTomUs6fSpEYFLLiWks/exec";
-    
+    
     const reportForm = document.getElementById("reportForm");
     const contactInput = document.getElementById("contact");
     const divisionSelect = document.getElementById("division");
@@ -118,7 +118,7 @@
     const consentCheckbox = document.getElementById("privacyConsent");
     const submitBtn = document.getElementById("submitBtn");
     const loadingSpinner = submitBtn.querySelector(".loading-spinner");
-    
+    
     const departments = {
         'SYSTEM사업부': ['사업부 공통', '영업팀', 'CS팀', '제조팀', '생산기술팀', '품질G'],
         'INFRA사업부': ['사업부 공통', 'ENC사업팀', 'EPC사업팀'],
@@ -145,9 +145,9 @@
     divisionSelect.addEventListener('change', function() {
         const selectedDivision = this.value;
         const subDepartments = departments[selectedDivision] || [];
-        
+        
         departmentSelect.innerHTML = '';
-        
+        
         if (selectedDivision === '협력사' || selectedDivision === '기타') {
             departmentSelect.style.display = 'none';
             departmentText.style.display = 'block';
@@ -160,12 +160,12 @@
             commonDeptNote.style.display = 'block';
             departmentText.removeAttribute('required');
             departmentSelect.setAttribute('required', 'required');
-            
+            
             const defaultOption = document.createElement('option');
             defaultOption.text = '-- 선택 --';
             defaultOption.value = '';
             departmentSelect.appendChild(defaultOption);
-            
+            
             subDepartments.forEach(dept => {
                 const option = document.createElement('option');
                 option.value = dept;
@@ -226,29 +226,29 @@
         const total = parseInt(document.getElementById("total").value);
         const evacuated = parseInt(document.getElementById("evacuated").value);
         const note = document.getElementById("note").value;
-        
+        
         const hasVisitor = hasVisitorCheckbox.checked;
         const visitorTotal = hasVisitor ? parseInt(visitorTotalInput.value) : 0;
-        
+        
         if (!reporter || !contact || !division || !department || isNaN(total) || isNaN(evacuated)) {
             alert("모든 필수 항목을 입력해주세요.");
             return;
         }
-        
+        
         if (hasVisitor && isNaN(visitorTotal)) {
             alert("내방객 인원을 숫자로 입력해주세요.");
             return;
         }
 
         const remaining = total - evacuated;
-        
+        
         if (remaining < 0) {
             alert("대피완료 인원이 대피대상자보다 많을 수 없습니다.");
             return;
         }
 
         const data = {reporter, contact, division, department, total, evacuated, remaining, note, hasVisitor, visitorTotal};
-        
+        
         submitBtn.disabled = true;
         submitBtn.classList.add('loading-btn');
         loadingSpinner.style.display = 'block';
