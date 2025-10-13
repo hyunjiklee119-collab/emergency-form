@@ -73,25 +73,28 @@
         <select id="department" required></select>
         <input type="text" id="department-text" placeholder="부서명 입력" style="display:none;">
         <div id="commonDeptNote" class="note-tip" style="display:none; color: #007bff; text-align: left;">* 소속 사업부의 소수 팀은 '사업부 공통'으로 보고 가능합니다.</div>
-        <label for="total">부서원 총 인원</label>
+        <div class="checkbox-group">
+            <input type="checkbox" id="hasVisitor">
+            <label for="hasVisitor" style="font-weight:normal; margin:0;">내방객 포함 여부</label>
+        </div>
+        <label for="visitorTotal" id="visitorLabel" style="display:none;">내방객 인원</label>
+        <input type="number" id="visitorTotal" min="0" placeholder="0" style="display:none;">
+        <label for="total">대피대상자 수</label>
         <input type="number" id="total" min="0" required>
         <div class="note-tip">해당 부서의 총 인원 수</div>
-        <label for="evacuated">부서원 대피완료 인원</label>
+        <label for="evacuated">대피완료 인원 수</label>
         <input type="number" id="evacuated" min="0" required>
         <div class="note-tip">대피 장소에 도착한 인원 수</div>
-
-                <div class="checkbox-group">
-            <input type="checkbox" id="hasVisitor">
-            <label for="hasVisitor" style="font-weight:normal; margin:0;">내방객 현황 포함</label>
-        </div>
-        <div id="visitorFields" style="display:none; margin-top: 10px;">
-            <label for="visitorTotal">총 내방객 인원</label>
-            <input type="number" id="visitorTotal" min="0" placeholder="0">
-            <label for="visitorEvacuated">대피완료 내방객 인원</label>
-            <input type="number" id="visitorEvacuated" min="0" placeholder="0">
-        </div>
         <label for="note">특이사항</label>
         <textarea id="note" rows="3" placeholder="특이사항 입력 (예: 부상자 발생, 잔류자 발생 사유 등)"></textarea>
+
+                <div class="checkbox-group" style="margin-top: 20px;">
+            <input type="checkbox" id="privacyConsent" required>
+            <label for="privacyConsent" style="font-weight:normal; margin:0; font-size:0.9rem;">
+                개인정보 수집 및 이용에 동의합니다.
+            </label>
+        </div>
+
         <button type="submit" id="submitBtn">
             <div class="loading-spinner"></div>
             보고 제출
@@ -110,9 +113,9 @@
     const departmentText = document.getElementById("department-text");
     const commonDeptNote = document.getElementById("commonDeptNote");
     const hasVisitorCheckbox = document.getElementById("hasVisitor");
-    const visitorFields = document.getElementById("visitorFields");
+    const visitorLabel = document.getElementById("visitorLabel");
     const visitorTotalInput = document.getElementById("visitorTotal");
-    const visitorEvacuatedInput = document.getElementById("visitorEvacuated");
+    const consentCheckbox = document.getElementById("privacyConsent");
     const submitBtn = document.getElementById("submitBtn");
     const loadingSpinner = submitBtn.querySelector(".loading-spinner");
     
@@ -127,17 +130,15 @@
 
     hasVisitorCheckbox.addEventListener('change', function() {
         if (this.checked) {
-            visitorFields.style.display = 'block';
+            visitorLabel.style.display = 'block';
+            visitorTotalInput.style.display = 'block';
             visitorTotalInput.setAttribute('required', 'required');
-            visitorEvacuatedInput.setAttribute('required', 'required');
             visitorTotalInput.value = '';
-            visitorEvacuatedInput.value = '';
         } else {
-            visitorFields.style.display = 'none';
+            visitorLabel.style.display = 'none';
+            visitorTotalInput.style.display = 'none';
             visitorTotalInput.removeAttribute('required');
-            visitorEvacuatedInput.removeAttribute('required');
             visitorTotalInput.value = '0';
-            visitorEvacuatedInput.value = '0';
         }
     });
 
@@ -212,32 +213,30 @@
     reportForm.addEventListener("submit", async function(e){
         e.preventDefault();
 
+        // 개인정보 동의 여부 확인
+        if (!consentCheckbox.checked) {
+            alert("개인정보 수집 및 이용에 동의해야 보고서를 제출할 수 있습니다.");
+            return;
+        }
+
         const reporter = document.getElementById("reporter").value;
         const contact = document.getElementById("contact").value;
         const division = divisionSelect.value;
         const department = (division === '협력사' || division === '기타') ? departmentText.value : departmentSelect.value;
-        let total = parseInt(document.getElementById("total").value);
-        let evacuated = parseInt(document.getElementById("evacuated").value);
+        const total = parseInt(document.getElementById("total").value);
+        const evacuated = parseInt(document.getElementById("evacuated").value);
         const note = document.getElementById("note").value;
         
         const hasVisitor = hasVisitorCheckbox.checked;
-        let visitorTotal = 0;
-        let visitorEvacuated = 0;
-
-        if (hasVisitor) {
-            visitorTotal = parseInt(visitorTotalInput.value);
-            visitorEvacuated = parseInt(visitorEvacuatedInput.value);
-            if (isNaN(visitorTotal) || isNaN(visitorEvacuated)) {
-                alert("내방객 인원을 숫자로 입력해주세요.");
-                return;
-            }
-            // 내방객 인원을 합산
-            total += visitorTotal;
-            evacuated += visitorEvacuated;
-        }
+        const visitorTotal = hasVisitor ? parseInt(visitorTotalInput.value) : 0;
         
         if (!reporter || !contact || !division || !department || isNaN(total) || isNaN(evacuated)) {
             alert("모든 필수 항목을 입력해주세요.");
+            return;
+        }
+        
+        if (hasVisitor && isNaN(visitorTotal)) {
+            alert("내방객 인원을 숫자로 입력해주세요.");
             return;
         }
 
