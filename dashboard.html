@@ -5,249 +5,170 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>모바일 대피 현황판</title>
 <style>
-  body {
-    font-family: 'Segoe UI', sans-serif;
-    background: #f8f9fa;
-    margin: 0;
-    padding: 10px;
-    color: #333;
-  }
+  body {
+    font-family: 'Segoe UI', sans-serif;
+    background: #f8f9fa;
+    margin: 0;
+    padding: 10px;
+    color: #333;
+  }
+  .summary-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 12px;
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+    overflow: hidden;
+  }
+  .summary-table th, .summary-table td {
+    padding: 10px 5px;
+    text-align: center;
+    border-bottom: 1px solid #eee;
+  }
+  .summary-table th {
+    background: #e9ecef;
+    font-size: 0.85rem;
+    font-weight: bold;
+    color: #495057;
+  }
+  .summary-table td {
+    font-size: 1.1rem;
+    font-weight: bold;
+  }
+  .summary-table tr:last-child td {
+    border-bottom: none;
+  }
+  .total-row { border-left: 4px solid #007bff; }
+  .evacuated-row { border-left: 4px solid #28a745; }
+  .remaining-row { border-left: 4px solid #dc3545; }
 
-  .summary-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 8px;
-    margin-bottom: 12px;
-  }
-  .card {
-    background: #fff;
-    border-radius: 10px;
-    padding: 10px 5px;
-    text-align: center;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.08);
-  }
-  .card h4 { margin: 4px 0; font-size: 0.8rem; color: #555; }
-  .card p { margin: 2px 0; font-size: 1.2rem; font-weight: bold; }
-
-  .blue { border-top: 4px solid #007bff; }
-  .green { border-top: 4px solid #28a745; }
-  .red { border-top: 4px solid #dc3545; }
-  .gray { border-top: 4px solid #6c757d; }
-
-  .accordion-container {
-    background: #fff;
-    border-radius: 10px;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.05);
-    overflow: hidden;
-  }
-  .accordion-item {
-    border-bottom: 1px solid #eee;
-  }
-  .accordion-item:last-child {
-    border-bottom: none;
-  }
-  .accordion-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 12px 15px;
-    cursor: pointer;
-    background: #f4f4f4;
-    font-weight: bold;
-    font-size: 1rem;
-  }
-  .accordion-content {
-    display: none;
-    padding: 0 15px;
-    max-height: 0;
-    overflow: hidden;
-    transition: max-height 0.3s ease-out, padding 0.3s ease-out;
-  }
-  .accordion-content.active {
-    display: block;
-    max-height: 500px;
-    padding: 10px 15px;
-  }
-  .dept-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 6px 0;
-  }
-  .dept-name { font-size: 0.9rem; }
-  .status {
-    font-weight: bold;
-    font-size: 1rem;
-  }
-  .ok { color: #28a745; }
-  .warn { color: #dc3545; }
-  .pending { color: #ffc107; }
-
-  .footer {
-    text-align: center;
-    margin-top: 12px;
-  }
-  button {
-    padding: 10px 20px;
-    font-size: 1rem;
-    border: none;
-    border-radius: 8px;
-    background: #007bff;
-    color: #fff;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.15);
-    cursor: pointer;
-  }
-  button:active { background: #0056b3; }
-
-  #lastUpdated {
-    text-align: center;
-    font-size: 0.75rem;
-    color: #777;
-    margin-top: 5px;
-  }
+  /* 기존 아코디언 및 버튼 스타일은 유지 */
+  .accordion-container {
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+    overflow: hidden;
+  }
+  .accordion-item {
+    border-bottom: 1px solid #eee;
+  }
+  .accordion-item:last-child {
+    border-bottom: none;
+  }
+  .accordion-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 15px;
+    cursor: pointer;
+    background: #f4f4f4;
+    font-weight: bold;
+    font-size: 1rem;
+  }
+  .accordion-content {
+    display: none;
+    padding: 0 15px;
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease-out, padding 0.3s ease-out;
+  }
+  .accordion-content.active {
+    display: block;
+    max-height: 500px;
+    padding: 10px 15px;
+  }
+  .dept-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 0;
+  }
+  .dept-name { font-size: 0.9rem; }
+  .status {
+    font-weight: bold;
+    font-size: 1rem;
+  }
+  .ok { color: #28a745; }
+  .warn { color: #dc3545; }
+  .pending { color: #ffc107; }
+  .footer {
+    text-align: center;
+    margin-top: 12px;
+  }
+  button {
+    padding: 10px 20px;
+    font-size: 1rem;
+    border: none;
+    border-radius: 8px;
+    background: #007bff;
+    color: #fff;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+    cursor: pointer;
+  }
+  button:active { background: #0056b3; }
+  #lastUpdated {
+    text-align: center;
+    font-size: 0.75rem;
+    color: #777;
+    margin-top: 5px;
+  }
 </style>
 </head>
 <body>
 
-<div class="summary-grid">
-  <div class="card blue"><h4>임직원 총</h4><p id="employeeTotal">-</p></div>
-  <div class="card green"><h4>임직원 대피완료</h4><p id="employeeEvacuated">-</p></div>
-  <div class="card red"><h4>임직원 미대피</h4><p id="employeeRemaining">-</p></div>
-</div>
-<div class="summary-grid" style="margin-top: 8px;">
-  <div class="card blue"><h4>협력사 총</h4><p id="partnerTotal">-</p></div>
-  <div class="card green"><h4>협력사 대피완료</h4><p id="partnerEvacuated">-</p></div>
-  <div class="card red"><h4>협력사 미대피</h4><p id="partnerRemaining">-</p></div>
-</div>
-<div class="summary-grid" style="margin-top: 8px;">
-  <div class="card blue"><h4>내방객 총</h4><p id="visitorTotal">-</p></div>
-  <div class="card green"><h4>내방객 대피완료</h4><p id="visitorEvacuated">-</p></div>
-  <div class="card red"><h4>내방객 미대피</h4><p id="visitorRemaining">-</p></div>
-</div>
+<table class="summary-table">
+  <thead>
+    <tr>
+      <th>구분</th>
+      <th>총 인원</th>
+      <th>대피완료</th>
+      <th>미대피</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr class="total-row">
+      <td>임직원</td>
+      <td id="employeeTotal">-</td>
+      <td id="employeeEvacuated">-</td>
+      <td id="employeeRemaining">-</td>
+    </tr>
+    <tr class="total-row">
+      <td>협력사</td>
+      <td id="partnerTotal">-</td>
+      <td id="partnerEvacuated">-</td>
+      <td id="partnerRemaining">-</td>
+    </tr>
+    <tr class="total-row">
+      <td>내방객</td>
+      <td id="visitorTotal">-</td>
+      <td id="visitorEvacuated">-</td>
+      <td id="visitorRemaining">-</td>
+    </tr>
+  </tbody>
+</table>
 
 <div class="accordion-container" id="accordionContainer">
-  </div>
+</div>
 
 <div class="footer">
-  <button onclick="reReport()">📤 재보고 요청</button>
-  <p id="lastUpdated">마지막 업데이트: -</p>
+  <button onclick="reReport()">📤 재보고 요청</button>
+  <p id="lastUpdated">마지막 업데이트: -</p>
 </div>
 
 <script>
 const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbwx3zhwNBTmXKTw58yo6bfvlXFY5TRLCCPnjcJ_vAd9qFlwxyklm6awOSNvQx0zx_B0/exec";
 
 const departments = {
-    'SYSTEM사업부': ['사업부 공통', '영업팀', 'CS팀', '제조팀', '생산기술팀', '품질G'],
-    'INFRA사업부': ['사업부 공통', 'ENC사업팀', 'EPC사업팀'],
-    '경영지원실': ['사업부 공통', '재무팀', '인사팀', '정보전략팀', '기획G', '준법경영G'],
-    '직속(연구소, 구매팀, 안전환경, 글로벌TF)': ['사업부 공통', '연구소', '구매팀', '안전환경팀', '글로벌TF'],
+    'SYSTEM사업부': ['사업부 공통', '영업팀', 'CS팀', '제조팀', '생산기술팀', '품질G'],
+    'INFRA사업부': ['사업부 공통', 'ENC사업팀', 'EPC사업팀'],
+    '경영지원실': ['사업부 공통', '재무팀', '인사팀', '정보전략팀', '기획G', '준법경영G'],
+    '직속(연구소, 구매팀, 안전환경, 글로벌TF)': ['사업부 공통', '연구소', '구매팀', '안전환경팀', '글로벌TF'],
 };
 
 async function fetchData() {
-  try {
-    const res = await fetch(`${WEBAPP_URL}?action=getSummary`);
-    const data = await res.json();
-    if (data.result === "success") {
-      const summary = data.summary || [];
-      
-      const employeeData = summary.filter(row => row.division !== '협력사' && row.division !== '기타');
-      const partnerData = summary.filter(row => row.division === '협력사');
-      const visitorData = summary.filter(row => row.division === '기타');
-
-      const employeeTotal = employeeData.reduce((sum, row) => sum + (row.total || 0), 0);
-      const employeeEvacuated = employeeData.reduce((sum, row) => sum + (row.evacuated || 0), 0);
-      const employeeRemaining = employeeData.reduce((sum, row) => sum + (row.remaining || 0), 0);
-      
-      const partnerTotal = partnerData.reduce((sum, row) => sum + (row.total || 0), 0);
-      const partnerEvacuated = partnerData.reduce((sum, row) => sum + (row.evacuated || 0), 0);
-      const partnerRemaining = partnerData.reduce((sum, row) => sum + (row.remaining || 0), 0);
-      
-      const visitorTotal = visitorData.reduce((sum, row) => sum + (row.total || 0), 0);
-      const visitorEvacuated = visitorData.reduce((sum, row) => sum + (row.evacuated || 0), 0);
-      const visitorRemaining = visitorData.reduce((sum, row) => sum + (row.remaining || 0), 0);
-
-      document.getElementById("employeeTotal").textContent = employeeTotal;
-      document.getElementById("employeeEvacuated").textContent = employeeEvacuated;
-      document.getElementById("employeeRemaining").textContent = employeeRemaining;
-      
-      document.getElementById("partnerTotal").textContent = partnerTotal;
-      document.getElementById("partnerEvacuated").textContent = partnerEvacuated;
-      document.getElementById("partnerRemaining").textContent = partnerRemaining;
-      
-      document.getElementById("visitorTotal").textContent = visitorTotal;
-      document.getElementById("visitorEvacuated").textContent = visitorEvacuated;
-      document.getElementById("visitorRemaining").textContent = visitorRemaining;
-
-      renderAccordion(summary);
-    }
-  } catch (error) {
-    console.error("Error fetching data:", error);
-    renderAccordion([]);
-  }
-  document.getElementById("lastUpdated").textContent = "마지막 업데이트: " + new Date().toLocaleTimeString();
-}
-
-function renderAccordion(summary = []) {
-  const container = document.getElementById("accordionContainer");
-  container.innerHTML = "";
-
-  for (const division in departments) {
-    const item = document.createElement("div");
-    item.className = "accordion-item";
-
-    const header = document.createElement("div");
-    header.className = "accordion-header";
-    header.textContent = division;
-
-    const content = document.createElement("div");
-    content.className = "accordion-content";
-
-    const subDepartments = departments[division];
-    subDepartments.forEach(deptName => {
-      const report = summary.find(row => row.department === deptName && row.division === division);
-      
-      const statusIcon = report ? (report.remaining === 0 ? "✔" : "⚠") : "⚠";
-      const statusClass = report ? (report.remaining === 0 ? "ok" : "warn") : "pending";
-      
-      const deptRow = document.createElement("div");
-      deptRow.className = "dept-row";
-      deptRow.innerHTML = `
-        <span class="dept-name">${deptName}</span>
-        <span class="status ${statusClass}">${statusIcon}</span>
-      `;
-      content.appendChild(deptRow);
-    });
-
-    header.addEventListener('click', () => {
-      const allContents = document.querySelectorAll('.accordion-content');
-      allContents.forEach(c => {
-        if (c !== content) {
-          c.classList.remove('active');
-        }
-      });
-      content.classList.toggle('active');
-    });
-
-    item.appendChild(header);
-    item.appendChild(content);
-    container.appendChild(item);
-  }
-}
-
-async function reReport() {
-  if (confirm("전체 부서에 재보고 요청을 전송하시겠습니까?")) {
-    try {
-      await fetch(`${WEBAPP_URL}?action=triggerReReport`);
-      alert("재보고 요청이 전송되었습니다.");
-    } catch (error) {
-      console.error("Error triggering re-report:", error);
-      alert("재보고 요청 전송 실패.");
-    }
-  }
-}
-
-fetchData();
-setInterval(fetchData, 30000);
-</script>
-</body>
-</html>
+  try {
+    const res = await fetch(`${WEBAPP_URL}?action=getSummary`);
+    const data = await res.json();
+    if (data.result === "success") {
+      const summary = data
