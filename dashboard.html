@@ -5,225 +5,224 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>모바일 대피 현황판</title>
 <style>
-  body {
-    font-family: 'Segoe UI', sans-serif;
-    background: #f8f9fa;
-    margin: 0;
-    padding: 10px;
-    color: #333;
-  }
-  .summary-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-bottom: 12px;
-    background: #fff;
-    border-radius: 10px;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.08);
-    overflow: hidden;
-  }
-  .summary-table th, .summary-table td {
-    padding: 10px 5px;
-    text-align: center;
-    border-bottom: 1px solid #eee;
-  }
-  .summary-table th {
-    background: #e9ecef;
-    font-size: 0.85rem;
-    font-weight: bold;
-    color: #495057;
-  }
-  .summary-table td {
-    font-size: 1.1rem;
-    font-weight: bold;
-  }
-  .summary-table tr:last-child td {
-    border-bottom: none;
-  }
-  .accordion-container {
-    background: #fff;
-    border-radius: 10px;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.05);
-    overflow: hidden;
-  }
-  .accordion-item {
-    border-bottom: 1px solid #eee;
-  }
-  .accordion-item:last-child {
-    border-bottom: none;
-  }
-  .accordion-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 12px 15px;
-    cursor: pointer;
-    background: #f4f4f4;
-    font-weight: bold;
-    font-size: 1rem;
-  }
-  .accordion-content {
-    display: none;
-    padding: 0 15px;
-    max-height: 0;
-    overflow: hidden;
-    transition: max-height 0.3s ease-out, padding 0.3s ease-out;
-  }
-  .accordion-content.active {
-    display: block;
-    max-height: 500px;
-    padding: 10px 15px;
-  }
-  .dept-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 6px 0;
-    cursor: pointer;
-  }
-  .dept-name { font-size: 0.9rem; }
-  .status {
-    font-weight: bold;
-    font-size: 1rem;
-  }
-  .ok { color: #28a745; }
-  .warn { color: #dc3545; }
-  .pending { color: #ffc107; }
+  body {
+    font-family: 'Segoe UI', sans-serif;
+    background: #f8f9fa;
+    margin: 0;
+    padding: 10px;
+    color: #333;
+  }
+  .summary-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 12px;
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+    overflow: hidden;
+  }
+  .summary-table th, .summary-table td {
+    padding: 10px 5px;
+    text-align: center;
+    border-bottom: 1px solid #eee;
+  }
+  .summary-table th {
+    background: #e9ecef;
+    font-size: 0.85rem;
+    font-weight: bold;
+    color: #495057;
+  }
+  .summary-table td {
+    font-size: 1.1rem;
+    font-weight: bold;
+  }
+  .summary-table tr:last-child td {
+    border-bottom: none;
+  }
+  .accordion-container {
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+    overflow: hidden;
+  }
+  .accordion-item {
+    border-bottom: 1px solid #eee;
+  }
+  .accordion-item:last-child {
+    border-bottom: none;
+  }
+  .accordion-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 15px;
+    cursor: pointer;
+    background: #f4f4f4;
+    font-weight: bold;
+    font-size: 1rem;
+  }
+  .accordion-content {
+    display: none;
+    padding: 0 15px;
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease-out, padding 0.3s ease-out;
+  }
+  .accordion-content.active {
+    display: block;
+    max-height: 500px;
+    padding: 10px 15px;
+  }
+  .dept-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 0;
+    cursor: pointer;
+  }
+  .dept-name { font-size: 0.9rem; }
+  .status {
+    font-weight: bold;
+    font-size: 1rem;
+  }
+  .ok { color: #28a745; }
+  .warn { color: #dc3545; }
+  .pending { color: #ffc107; }
 
-  .footer {
-    text-align: center;
-    margin-top: 12px;
-  }
-  button {
-    padding: 10px 20px;
-    font-size: 1rem;
-    border: none;
-    border-radius: 8px;
-    background: #007bff;
-    color: #fff;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.15);
-    cursor: pointer;
-  }
-  button:active { background: #0056b3; }
-  #lastUpdated {
-    text-align: center;
-    font-size: 0.75rem;
-    color: #777;
-    margin-top: 5px;
-  }
-
-  /* 팝업 스타일 */
-  .popup {
-    display: none;
-    position: fixed;
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.5);
-    justify-content: center;
-    align-items: center;
-    z-index: 1000;
-  }
-  .popup-content {
-    background: #fff;
-    padding: 20px;
-    border-radius: 10px;
-    width: 90%;
-    max-width: 400px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-  }
-  .popup-content h3 {
-    margin-top: 0;
-    border-bottom: 2px solid #007bff;
-    padding-bottom: 10px;
-  }
-  .popup-content .input-group {
-    margin-bottom: 15px;
-  }
-  .popup-content label {
-    display: block;
-    font-size: 0.9rem;
-    color: #555;
-    margin-bottom: 5px;
-  }
-  .popup-content input, .popup-content textarea {
-    width: calc(100% - 20px);
-    padding: 8px 10px;
-    border: 1px solid #ccc;
-    border-radius: 5px;
-  }
-  .popup-content button {
-    width: 100%;
-    margin-top: 10px;
-  }
-  .popup-content .close-btn {
-    background: #6c757d;
-  }
+  .footer {
+    text-align: center;
+    margin-top: 12px;
+  }
+  button {
+    padding: 10px 20px;
+    font-size: 1rem;
+    border: none;
+    border-radius: 8px;
+    background: #007bff;
+    color: #fff;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+    cursor: pointer;
+  }
+  button:active { background: #0056b3; }
+  #lastUpdated {
+    text-align: center;
+    font-size: 0.75rem;
+    color: #777;
+    margin-top: 5px;
+  }
+  /* 팝업 스타일 */
+  .popup {
+    display: none;
+    position: fixed;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+  }
+  .popup-content {
+    background: #fff;
+    padding: 20px;
+    border-radius: 10px;
+    width: 90%;
+    max-width: 400px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  }
+  .popup-content h3 {
+    margin-top: 0;
+    border-bottom: 2px solid #007bff;
+    padding-bottom: 10px;
+  }
+  .popup-content .input-group {
+    margin-bottom: 15px;
+  }
+  .popup-content label {
+    display: block;
+    font-size: 0.9rem;
+    color: #555;
+    margin-bottom: 5px;
+  }
+  .popup-content input, .popup-content textarea {
+    width: calc(100% - 20px);
+    padding: 8px 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+  }
+  .popup-content .popup-btn {
+    width: calc(50% - 5px);
+    margin-top: 10px;
+  }
+  .popup-content .close-btn {
+    background: #6c757d;
+  }
 </style>
 </head>
 <body>
 
 <table class="summary-table">
-  <thead>
-    <tr>
-      <th>구분</th>
-      <th>총 인원</th>
-      <th>대피완료</th>
-      <th>미대피</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td>임직원</td>
-      <td id="employeeTotal">-</td>
-      <td id="employeeEvacuated">-</td>
-      <td id="employeeRemaining">-</td>
-    </tr>
-    <tr>
-      <td>협력사</td>
-      <td id="partnerTotal">-</td>
-      <td id="partnerEvacuated">-</td>
-      <td id="partnerRemaining">-</td>
-    </tr>
-    <tr>
-      <td>내방객</td>
-      <td id="visitorTotal">-</td>
-      <td id="visitorEvacuated">-</td>
-      <td id="visitorRemaining">-</td>
-    </tr>
-  </tbody>
+  <thead>
+    <tr>
+      <th>구분</th>
+      <th>총 인원</th>
+      <th>대피완료</th>
+      <th>미대피</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>임직원</td>
+      <td id="employeeTotal">-</td>
+      <td id="employeeEvacuated">-</td>
+      <td id="employeeRemaining">-</td>
+    </tr>
+    <tr>
+      <td>협력사</td>
+      <td id="partnerTotal">-</td>
+      <td id="partnerEvacuated">-</td>
+      <td id="partnerRemaining">-</td>
+    </tr>
+    <tr>
+      <td>내방객</td>
+      <td id="visitorTotal">-</td>
+      <td id="visitorEvacuated">-</td>
+      <td id="visitorRemaining">-</td>
+    </tr>
+  </tbody>
 </table>
 
 <div class="accordion-container" id="accordionContainer">
 </div>
 
 <div class="footer">
-  <button onclick="syncData()">🔄 동기화</button>
-  <p id="lastUpdated">마지막 업데이트: -</p>
+  <button onclick="syncData()">🔄 동기화</button>
+  <p id="lastUpdated">마지막 업데이트: -</p>
 </div>
 
 <div id="reportPopup" class="popup">
-  <div class="popup-content">
-    <h3 id="popupTitle"></h3>
-    <div class="input-group">
-      <label for="popupTotal">총 인원</label>
-      <input type="number" id="popupTotal">
-    </div>
-    <div class="input-group">
-      <label for="popupEvacuated">대피완료</label>
-      <input type="number" id="popupEvacuated">
-    </div>
-    <div class="input-group">
-      <label for="popupRemaining">미대피</label>
-      <input type="number" id="popupRemaining" disabled>
-    </div>
-    <div class="input-group">
-      <label for="popupNotes">특이사항</label>
-      <textarea id="popupNotes"></textarea>
-    </div>
-    <button id="saveBtn">저장</button>
-    <button class="close-btn" onclick="closePopup()">닫기</button>
-  </div>
+  <div class="popup-content">
+    <h3 id="popupTitle"></h3>
+    <div class="input-group">
+      <label for="popupTotal">총 인원</label>
+      <input type="number" id="popupTotal">
+    </div>
+    <div class="input-group">
+      <label for="popupEvacuated">대피완료</label>
+      <input type="number" id="popupEvacuated">
+    </div>
+    <div class="input-group">
+      <label for="popupRemaining">미대피</label>
+      <input type="number" id="popupRemaining" disabled>
+    </div>
+    <div class="input-group">
+      <label for="popupNotes">특이사항</label>
+      <textarea id="popupNotes"></textarea>
+    </div>
+    <button id="saveBtn" class="popup-btn">저장</button>
+    <button class="close-btn popup-btn" onclick="closePopup()">닫기</button>
+  </div>
 </div>
 
 <script>
@@ -231,178 +230,178 @@ const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbwx3zhwNBTmXKTw58yo6
 let currentReportData = null;
 
 const departments = {
-    'SYSTEM사업부': ['사업부 공통', '영업팀', 'CS팀', '제조팀', '생산기술팀', '품질G'],
-    'INFRA사업부': ['사업부 공통', 'ENC사업팀', 'EPC사업팀'],
-    '경영지원실': ['사업부 공통', '재무팀', '인사팀', '정보전략팀', '기획G', '준법경영G'],
-    '직속(연구소, 구매팀, 안전환경, 글로벌TF)': ['사업부 공통', '연구소', '구매팀', '안전환경팀', '글로벌TF'],
+    'SYSTEM사업부': ['사업부 공통', '영업팀', 'CS팀', '제조팀', '생산기술팀', '품질G'],
+    'INFRA사업부': ['사업부 공통', 'ENC사업팀', 'EPC사업팀'],
+    '경영지원실': ['사업부 공통', '재무팀', '인사팀', '정보전략팀', '기획G', '준법경영G'],
+    '직속(연구소, 구매팀, 안전환경, 글로벌TF)': ['사업부 공통', '연구소', '구매팀', '안전환경팀', '글로벌TF'],
 };
 
 async function fetchData() {
-  try {
-    const res = await fetch(`${WEBAPP_URL}?action=getSummary`);
-    const data = await res.json();
-    if (data.result === "success") {
-      const summary = data.summary || [];
-      
-      const employeeData = summary.filter(row => row.division !== '협력사' && row.division !== '기타');
-      const partnerData = summary.filter(row => row.division === '협력사');
-      const visitorData = summary.filter(row => row.division === '기타');
+  try {
+    const res = await fetch(`${WEBAPP_URL}?action=getSummary`);
+    const data = await res.json();
+    if (data.result === "success") {
+      const summary = data.summary || [];
+      
+      const employeeData = summary.filter(row => row.division !== '협력사' && row.division !== '기타');
+      const partnerData = summary.filter(row => row.division === '협력사');
+      const visitorData = summary.filter(row => row.division === '기타');
 
-      const employeeTotal = employeeData.reduce((sum, row) => sum + (row.total || 0), 0);
-      const employeeEvacuated = employeeData.reduce((sum, row) => sum + (row.evacuated || 0), 0);
-      const employeeRemaining = employeeData.reduce((sum, row) => sum + (row.remaining || 0), 0);
-      
-      const partnerTotal = partnerData.reduce((sum, row) => sum + (row.total || 0), 0);
-      const partnerEvacuated = partnerData.reduce((sum, row) => sum + (row.evacuated || 0), 0);
-      const partnerRemaining = partnerData.reduce((sum, row) => sum + (row.remaining || 0), 0);
-      
-      const visitorTotal = visitorData.reduce((sum, row) => sum + (row.total || 0), 0);
-      const visitorEvacuated = visitorData.reduce((sum, row) => sum + (row.evacuated || 0), 0);
-      const visitorRemaining = visitorData.reduce((sum, row) => sum + (row.remaining || 0), 0);
+      const employeeTotal = employeeData.reduce((sum, row) => sum + (row.total || 0), 0);
+      const employeeEvacuated = employeeData.reduce((sum, row) => sum + (row.evacuated || 0), 0);
+      const employeeRemaining = employeeData.reduce((sum, row) => sum + (row.remaining || 0), 0);
+      
+      const partnerTotal = partnerData.reduce((sum, row) => sum + (row.total || 0), 0);
+      const partnerEvacuated = partnerData.reduce((sum, row) => sum + (row.evacuated || 0), 0);
+      const partnerRemaining = partnerData.reduce((sum, row) => sum + (row.remaining || 0), 0);
+      
+      const visitorTotal = visitorData.reduce((sum, row) => sum + (row.total || 0), 0);
+      const visitorEvacuated = visitorData.reduce((sum, row) => sum + (row.evacuated || 0), 0);
+      const visitorRemaining = visitorData.reduce((sum, row) => sum + (row.remaining || 0), 0);
 
-      document.getElementById("employeeTotal").textContent = employeeTotal;
-      document.getElementById("employeeEvacuated").textContent = employeeEvacuated;
-      document.getElementById("employeeRemaining").textContent = employeeRemaining;
-      
-      document.getElementById("partnerTotal").textContent = partnerTotal;
-      document.getElementById("partnerEvacuated").textContent = partnerEvacuated;
-      document.getElementById("partnerRemaining").textContent = partnerRemaining;
-      
-      document.getElementById("visitorTotal").textContent = visitorTotal;
-      document.getElementById("visitorEvacuated").textContent = visitorEvacuated;
-      document.getElementById("visitorRemaining").textContent = visitorRemaining;
+      document.getElementById("employeeTotal").textContent = employeeTotal;
+      document.getElementById("employeeEvacuated").textContent = employeeEvacuated;
+      document.getElementById("employeeRemaining").textContent = employeeRemaining;
+      
+      document.getElementById("partnerTotal").textContent = partnerTotal;
+      document.getElementById("partnerEvacuated").textContent = partnerEvacuated;
+      document.getElementById("partnerRemaining").textContent = partnerRemaining;
+      
+      document.getElementById("visitorTotal").textContent = visitorTotal;
+      document.getElementById("visitorEvacuated").textContent = visitorEvacuated;
+      document.getElementById("visitorRemaining").textContent = visitorRemaining;
 
-      renderAccordion(summary);
-    }
-  } catch (error) {
-    console.error("Error fetching data:", error);
-    renderAccordion([]);
-  }
-  document.getElementById("lastUpdated").textContent = "마지막 업데이트: " + new Date().toLocaleTimeString();
+      renderAccordion(summary);
+    }
+  } catch (error) {
+    console.error("Error fetching data:", error);
+    renderAccordion([]);
+  }
+  document.getElementById("lastUpdated").textContent = "마지막 업데이트: " + new Date().toLocaleTimeString();
 }
 
 function renderAccordion(summary = []) {
-  const container = document.getElementById("accordionContainer");
-  container.innerHTML = "";
+  const container = document.getElementById("accordionContainer");
+  container.innerHTML = "";
 
-  for (const division in departments) {
-    const item = document.createElement("div");
-    item.className = "accordion-item";
+  for (const division in departments) {
+    const item = document.createElement("div");
+    item.className = "accordion-item";
 
-    const header = document.createElement("div");
-    header.className = "accordion-header";
-    header.textContent = division;
+    const header = document.createElement("div");
+    header.className = "accordion-header";
+    header.textContent = division;
 
-    const content = document.createElement("div");
-    content.className = "accordion-content";
+    const content = document.createElement("div");
+    content.className = "accordion-content";
 
-    const subDepartments = departments[division];
-    subDepartments.forEach(deptName => {
-      const report = summary.find(row => row.department === deptName && row.division === division);
-      
-      const statusIcon = report ? (report.remaining === 0 ? "✔" : "⚠") : "⚠";
-      const statusClass = report ? (report.remaining === 0 ? "ok" : "warn") : "pending";
-      
-      const deptRow = document.createElement("div");
-      deptRow.className = "dept-row";
-      deptRow.innerHTML = `
-        <span class="dept-name">${deptName}</span>
-        <span class="status ${statusClass}">${statusIcon}</span>
-      `;
-      deptRow.onclick = () => showPopup(report);
-      content.appendChild(deptRow);
-    });
+    const subDepartments = departments[division];
+    subDepartments.forEach(deptName => {
+      const report = summary.find(row => row.department === deptName && row.division === division);
+      
+      const statusIcon = report ? (report.remaining === 0 ? "✔" : "⚠") : "⚠";
+      const statusClass = report ? (report.remaining === 0 ? "ok" : "warn") : "pending";
+      
+      const deptRow = document.createElement("div");
+      deptRow.className = "dept-row";
+      deptRow.innerHTML = `
+        <span class="dept-name">${deptName}</span>
+        <span class="status ${statusClass}">${statusIcon}</span>
+      `;
+      deptRow.onclick = () => showPopup(report);
+      content.appendChild(deptRow);
+    });
 
-    header.addEventListener('click', () => {
-      const allContents = document.querySelectorAll('.accordion-content');
-      allContents.forEach(c => {
-        if (c !== content) {
-          c.classList.remove('active');
-        }
-      });
-      content.classList.toggle('active');
-    });
+    header.addEventListener('click', () => {
+      const allContents = document.querySelectorAll('.accordion-content');
+      allContents.forEach(c => {
+        if (c !== content) {
+          c.classList.remove('active');
+        }
+      });
+      content.classList.toggle('active');
+    });
 
-    item.appendChild(header);
-    item.appendChild(content);
-    container.appendChild(item);
-  }
+    item.appendChild(header);
+    item.appendChild(content);
+    container.appendChild(item);
+  }
 }
 
 function showPopup(report) {
-  const popup = document.getElementById("reportPopup");
-  const title = document.getElementById("popupTitle");
-  const totalInput = document.getElementById("popupTotal");
-  const evacuatedInput = document.getElementById("popupEvacuated");
-  const remainingInput = document.getElementById("popupRemaining");
-  const notesTextarea = document.getElementById("popupNotes");
-  const saveBtn = document.getElementById("saveBtn");
+  const popup = document.getElementById("reportPopup");
+  const title = document.getElementById("popupTitle");
+  const totalInput = document.getElementById("popupTotal");
+  const evacuatedInput = document.getElementById("popupEvacuated");
+  const remainingInput = document.getElementById("popupRemaining");
+  const notesTextarea = document.getElementById("popupNotes");
+  const saveBtn = document.getElementById("saveBtn");
 
-  if (report) {
-    currentReportData = report;
-    title.textContent = `${report.division} > ${report.department} 보고 내역`;
-    totalInput.value = report.total || 0;
-    evacuatedInput.value = report.evacuated || 0;
-    remainingInput.value = report.remaining || 0;
-    notesTextarea.value = report.notes || '';
-    saveBtn.textContent = '수정';
-  } else {
-    currentReportData = { division: '미보고', department: '미보고' };
-    title.textContent = `미보고 부서`;
-    totalInput.value = '';
-    evacuatedInput.value = '';
-    remainingInput.value = '';
-    notesTextarea.value = '';
-    saveBtn.textContent = '신규 보고';
-  }
-  popup.style.display = 'flex';
+  if (report) {
+    currentReportData = report;
+    title.textContent = `${report.division} > ${report.department} 보고 내역`;
+    totalInput.value = report.total || 0;
+    evacuatedInput.value = report.evacuated || 0;
+    remainingInput.value = report.remaining || 0;
+    notesTextarea.value = report.notes || '';
+    saveBtn.textContent = '수정';
+  } else {
+    currentReportData = { division: '미보고', department: '미보고' };
+    title.textContent = `미보고 부서`;
+    totalInput.value = '';
+    evacuatedInput.value = '';
+    remainingInput.value = '';
+    notesTextarea.value = '';
+    saveBtn.textContent = '신규 보고';
+  }
+  popup.style.display = 'flex';
 }
 
 function closePopup() {
-  document.getElementById("reportPopup").style.display = 'none';
+  document.getElementById("reportPopup").style.display = 'none';
 }
 
 async function saveReport() {
-  const total = parseInt(document.getElementById("popupTotal").value) || 0;
-  const evacuated = parseInt(document.getElementById("popupEvacuated").value) || 0;
-  const notes = document.getElementById("popupNotes").value;
-  const remaining = total - evacuated;
-  if (remaining < 0) {
-    alert("미대피 인원은 음수일 수 없습니다.");
-    return;
-  }
- 
-  const dataToSave = {
-    division: currentReportData.division,
-    department: currentReportData.department,
-    total: total,
-    evacuated: evacuated,
-    remaining: remaining,
-    notes: notes,
-  };
+  const total = parseInt(document.getElementById("popupTotal").value) || 0;
+  const evacuated = parseInt(document.getElementById("popupEvacuated").value) || 0;
+  const notes = document.getElementById("popupNotes").value;
+  const remaining = total - evacuated;
+  if (remaining < 0) {
+    alert("미대피 인원은 음수일 수 없습니다.");
+    return;
+  }
+  
+  const dataToSave = {
+    division: currentReportData.division,
+    department: currentReportData.department,
+    total: total,
+    evacuated: evacuated,
+    remaining: remaining,
+    notes: notes,
+  };
 
-  try {
-    const res = await fetch(`${WEBAPP_URL}?action=updateReport`, {
-      method: 'POST',
-      body: JSON.stringify(dataToSave)
-    });
-    const result = await res.json();
-    if (result.result === "success") {
-      alert("보고가 성공적으로 저장되었습니다.");
-      closePopup();
-      fetchData();
-    } else {
-      alert("보고 저장 실패: " + result.message);
-    }
-  } catch (error) {
-    console.error("Error saving report:", error);
-    alert("보고 저장 중 오류가 발생했습니다.");
-  }
+  try {
+    const res = await fetch(`${WEBAPP_URL}?action=updateReport`, {
+      method: 'POST',
+      body: JSON.stringify(dataToSave)
+    });
+    const result = await res.json();
+    if (result.result === "success") {
+      alert("보고가 성공적으로 저장되었습니다.");
+      closePopup();
+      fetchData();
+    } else {
+      alert("보고 저장 실패: " + result.message);
+    }
+  } catch (error) {
+    console.error("Error saving report:", error);
+    alert("보고 저장 중 오류가 발생했습니다.");
+  }
 }
 
 function syncData() {
-  fetchData();
-  alert("대피 현황을 동기화했습니다.");
+  fetchData();
+  alert("대피 현황을 동기화했습니다.");
 }
 
 document.getElementById("popupTotal").addEventListener('input', calculateRemaining);
@@ -410,10 +409,10 @@ document.getElementById("popupEvacuated").addEventListener('input', calculateRem
 document.getElementById("saveBtn").addEventListener('click', saveReport);
 
 function calculateRemaining() {
-  const total = parseInt(document.getElementById("popupTotal").value) || 0;
-  const evacuated = parseInt(document.getElementById("popupEvacuated").value) || 0;
-  const remaining = total - evacuated;
-  document.getElementById("popupRemaining").value = remaining >= 0 ? remaining : '';
+  const total = parseInt(document.getElementById("popupTotal").value) || 0;
+  const evacuated = parseInt(document.getElementById("popupEvacuated").value) || 0;
+  const remaining = total - evacuated;
+  document.getElementById("popupRemaining").value = remaining >= 0 ? remaining : '';
 }
 
 fetchData();
