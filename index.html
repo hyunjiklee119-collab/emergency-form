@@ -1,136 +1,271 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>비상대피 보고폼</title>
-  <style>
-    body { font-family: sans-serif; margin: 15px; background:#f9f9f9; }
-    h2 { text-align:center; margin-bottom: 15px; }
-    .form-box { max-width: 480px; margin:auto; background:#fff; padding:15px; border-radius:10px; box-shadow:0 2px 5px rgba(0,0,0,0.2);}
-    label { display:block; margin-top:10px; font-weight:bold; }
-    input, select, textarea, button { width:100%; margin-top:5px; padding:8px; font-size:1rem; border-radius:5px; border:1px solid #ccc; }
-    textarea { resize:none; }
-    button { background:#007bff; color:#fff; border:none; cursor:pointer; margin-top:15px; }
-    button:hover { background:#0056b3; }
-    .note-tip { font-size:0.9rem; color:#555; margin-top:5px; }
-    table { width:100%; border-collapse: collapse; margin-top:15px; }
-    th, td { border:1px solid #ccc; padding:6px; text-align:center; font-size:0.9rem; }
-    th { background:#f0f0f0; }
-    .note-marker { color:red; cursor:pointer; font-weight:bold; }
-  </style>
+    <base target="_top">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>비상대피 인원 보고</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; margin: 0; background: #f0f2f5; color: #333; }
+        h2 { text-align: center; margin: 1.5rem 0; color: #1a237e; }
+        .form-container { display: flex; flex-direction: column; gap: 15px; max-width: 480px; margin: 20px auto; padding: 20px; background: #fff; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        label { display: block; margin-bottom: 5px; font-weight: bold; font-size: 0.95rem; color: #444; }
+        input, select, textarea { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 8px; font-size: 1rem; box-sizing: border-box; transition: border-color 0.3s; }
+        input:focus, select:focus, textarea:focus { border-color: #007bff; outline: none; box-shadow: 0 0 0 3px rgba(0,123,255,0.25); }
+        textarea { resize: vertical; min-height: 80px; }
+        button { width: 100%; padding: 12px; background: #007bff; color: #fff; border: none; border-radius: 8px; font-size: 1.1rem; font-weight: bold; cursor: pointer; transition: background-color 0.3s, transform 0.1s; margin-top: 10px; }
+        button:hover { background: #0056b3; }
+        button:active { transform: scale(0.99); }
+        .note-tip { font-size: 0.85rem; color: #777; margin-top: 5px; text-align: right; }
+        .checkbox-group { display: flex; align-items: center; gap: 10px; }
+        .loading-spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid #fff;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+            display: none;
+        }
+        .loading-btn {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        /* PC 화면 대응 (반응형 디자인) */
+        @media (min-width: 768px) {
+            .form-container, .result-container {
+                max-width: 600px;
+                padding: 30px;
+                margin: 40px auto;
+            }
+            h2 {
+                font-size: 2rem;
+            }
+            label {
+                font-size: 1rem;
+            }
+        }
+    </style>
 </head>
 <body>
 
-<h2>비상대피 인원 보고</h2>
-
-<div class="form-box">
-  <form id="reportForm">
-    <label>보고자 성명</label>
-    <input type="text" id="reporter" placeholder="성명 입력" required>
-
-    <label>연락처</label>
-    <input type="text" id="contact" placeholder="연락처 입력" required>
-
-    <label>소속 사업부/실</label>
-    <select id="division" required>
-      <option value="">-- 선택 --</option>
-      <option value="생산">생산</option>
-      <option value="품질">품질</option>
-      <option value="안전">안전</option>
-    </select>
-
-    <label>세부 팀/부서명</label>
-    <input type="text" id="department" placeholder="부서명 입력" required>
-
-    <label>대피대상자</label>
-    <input type="number" id="total" min="0" required>
-
-    <label>대피완료 인원</label>
-    <input type="number" id="evacuated" min="0" required>
-
-    <label>특이사항 (있으면 입력)</label>
-    <textarea id="note" rows="3" placeholder="특이사항 입력 시 결과표에 * 표시"></textarea>
-    <div class="note-tip">* 표시는 특이사항 입력 시 표시됩니다.</div>
-
-    <button type="submit">제출</button>
-  </form>
+<div class="form-container">
+    <h2>비상대피 인원 보고</h2>
+    <form id="reportForm">
+        <label for="reporter">보고자 성명</label>
+        <input type="text" id="reporter" placeholder="성명 입력" required>
+        <label for="contact">연락처</label>
+        <input type="tel" id="contact" placeholder="010-1234-5678" required>
+        <div class="note-tip">숫자만 입력해 주세요. 하이픈(-)은 자동으로 입력됩니다.</div>
+        <label for="division">소속 사업부/실</label>
+        <select id="division" required>
+            <option value="">-- 선택 --</option>
+            <option value="SYSTEM사업부">SYSTEM사업부</option>
+            <option value="INFRA사업부">INFRA사업부</option>
+            <option value="경영지원실">경영지원실</option>
+            <option value="직속(연구소, 구매팀, 안전환경, 글로벌TF)">직속(연구소, 구매팀, 안전환경, 글로벌TF)</option>
+            <option value="협력사">협력사</option>
+            <option value="기타">기타</option>
+        </select>
+        <label for="department">세부 팀/부서명</label>
+        <select id="department" required></select>
+        <input type="text" id="department-text" placeholder="부서명 입력" style="display:none;">
+        <div id="commonDeptNote" class="note-tip" style="display:none; color: #007bff; text-align: left;">* 소속 사업부의 소수 팀은 '사업부 공통'으로 보고 가능합니다.</div>
+        <div class="checkbox-group">
+            <input type="checkbox" id="hasVisitor">
+            <label for="hasVisitor" style="font-weight:normal; margin:0;">내방객 포함 여부</label>
+        </div>
+        <label for="visitorTotal" id="visitorLabel" style="display:none;">내방객 인원</label>
+        <input type="number" id="visitorTotal" min="0" placeholder="0" style="display:none;">
+        <label for="total">대피대상자 수</label>
+        <input type="number" id="total" min="0" required>
+        <div class="note-tip">해당 부서의 총 인원 수</div>
+        <label for="evacuated">대피완료 인원 수</label>
+        <input type="number" id="evacuated" min="0" required>
+        <div class="note-tip">대피 장소에 도착한 인원 수</div>
+        <label for="note">특이사항</label>
+        <textarea id="note" rows="3" placeholder="특이사항 입력 (예: 부상자 발생, 잔류자 발생 사유 등)"></textarea>
+        <button type="submit" id="submitBtn">
+            <div class="loading-spinner"></div>
+            보고 제출
+        </button>
+    </form>
 </div>
 
-<div class="form-box">
-  <h3>제출 결과</h3>
-  <table id="resultTable">
-    <thead>
-      <tr>
-        <th>보고자 성명</th>
-        <th>연락처</th>
-        <th>소속 사업부/실</th>
-        <th>세부 팀/부서명</th>
-        <th>대피대상자</th>
-        <th>대피완료 인원</th>
-        <th>미대피 인원</th>
-        <th>특이사항</th>
-      </tr>
-    </thead>
-    <tbody></tbody>
-  </table>
+<div style="text-align: center; margin-top: 20px;">
+    <a href="https://docs.google.com/spreadsheets/d/10Rb7X0BkhpodDEv63lnLjUZl1WxlfZv1LujH0cloWHo/edit?usp=sharing" target="_blank" style="color: #007bff; text-decoration: none; font-size: 0.9rem;">
+        📊 보고 현황 대시보드 보기
+    </a>
 </div>
 
 <script>
-  const WEBAPP_URL = "https://script.google.com/macros/s/AKfycby6JkyTyJzToZJ9OIuKL2cA9fJmAax4qujYlqJhkyR6Lr-CkFiH5rA_5K-CeEJKL4PgLg/exec";
-  const tableBody = document.querySelector("#resultTable tbody");
+    const reportForm = document.getElementById("reportForm");
+    const contactInput = document.getElementById("contact");
+    const divisionSelect = document.getElementById("division");
+    const departmentSelect = document.getElementById("department");
+    const departmentText = document.getElementById("department-text");
+    const commonDeptNote = document.getElementById("commonDeptNote");
+    const hasVisitorCheckbox = document.getElementById("hasVisitor");
+    const visitorLabel = document.getElementById("visitorLabel");
+    const visitorTotalInput = document.getElementById("visitorTotal");
+    const submitBtn = document.getElementById("submitBtn");
+    const loadingSpinner = submitBtn.querySelector(".loading-spinner");
+    
+    const departments = {
+        'SYSTEM사업부': ['사업부 공통', '영업팀', 'CS팀', '제조팀', '생산기술팀', '품질G'],
+        'INFRA사업부': ['사업부 공통', 'ENC사업팀', 'EPC사업팀'],
+        '경영지원실': ['사업부 공통', '재무팀', '인사팀', '정보전략팀', '기획G', '준법경영G'],
+        '직속(연구소, 구매팀, 안전환경, 글로벌TF)': ['사업부 공통', '연구소', '구매팀', '안전환경팀', '글로벌TF'],
+        '협력사': [],
+        '기타': []
+    };
 
-  document.getElementById("reportForm").addEventListener("submit", async function(e){
-    e.preventDefault();
+    hasVisitorCheckbox.addEventListener('change', function() {
+        if (this.checked) {
+            visitorLabel.style.display = 'block';
+            visitorTotalInput.style.display = 'block';
+            visitorTotalInput.setAttribute('required', 'required');
+            visitorTotalInput.value = '';
+        } else {
+            visitorLabel.style.display = 'none';
+            visitorTotalInput.style.display = 'none';
+            visitorTotalInput.removeAttribute('required');
+            visitorTotalInput.value = '0';
+        }
+    });
 
-    const reporter = document.getElementById("reporter").value;
-    const contact = document.getElementById("contact").value;
-    const division = document.getElementById("division").value;
-    const department = document.getElementById("department").value;
-    const total = parseInt(document.getElementById("total").value);
-    const evacuated = parseInt(document.getElementById("evacuated").value);
-    const remaining = total - evacuated;
-    const note = document.getElementById("note").value;
+    divisionSelect.addEventListener('change', function() {
+        const selectedDivision = this.value;
+        const subDepartments = departments[selectedDivision] || [];
+        
+        departmentSelect.innerHTML = '';
+        
+        if (selectedDivision === '협력사' || selectedDivision === '기타') {
+            departmentSelect.style.display = 'none';
+            departmentText.style.display = 'block';
+            commonDeptNote.style.display = 'none';
+            departmentText.setAttribute('required', 'required');
+            departmentSelect.removeAttribute('required');
+        } else {
+            departmentSelect.style.display = 'block';
+            departmentText.style.display = 'none';
+            commonDeptNote.style.display = 'block';
+            departmentText.removeAttribute('required');
+            departmentSelect.setAttribute('required', 'required');
+            
+            const defaultOption = document.createElement('option');
+            defaultOption.text = '-- 선택 --';
+            defaultOption.value = '';
+            departmentSelect.appendChild(defaultOption);
+            
+            subDepartments.forEach(dept => {
+                const option = document.createElement('option');
+                option.value = dept;
+                option.text = dept;
+                departmentSelect.appendChild(option);
+            });
+        }
+    });
 
-    const data = {reporter, contact, division, department, total, evacuated, remaining, note};
+    contactInput.addEventListener("input", function(e) {
+        const value = e.target.value.replace(/\D/g, "");
+        const originalLength = value.length;
+        let formattedValue = "";
 
-    try {
-      const res = await fetch(WEBAPP_URL, {
-        method: "POST",
-        mode: "cors",
-        cache: "no-cache",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data)
-      });
+        if (originalLength > 0) {
+            if (value.startsWith("02")) {
+                if (originalLength > 2) {
+                    formattedValue += value.substring(0, 2) + "-";
+                    if (originalLength > 6) {
+                        formattedValue += value.substring(2, 6) + "-";
+                        formattedValue += value.substring(6, 10);
+                    } else {
+                        formattedValue += value.substring(2, 6);
+                    }
+                } else {
+                    formattedValue = value;
+                }
+            } else {
+                if (originalLength > 3) {
+                    formattedValue += value.substring(0, 3) + "-";
+                    if (originalLength > 7) {
+                        formattedValue += value.substring(3, 7) + "-";
+                        formattedValue += value.substring(7, 11);
+                    } else {
+                        formattedValue += value.substring(3, 7);
+                    }
+                } else {
+                    formattedValue = value;
+                }
+            }
+        }
+        e.target.value = formattedValue;
+    });
 
-      const result = await res.json();
+    reportForm.addEventListener("submit", function(e){
+        e.preventDefault();
 
-      if(result.result === "success"){
-        alert("보고가 제출되었습니다.");
+        const reporter = document.getElementById("reporter").value;
+        const contact = document.getElementById("contact").value;
+        const division = divisionSelect.value;
+        const department = (division === '협력사' || division === '기타') ? departmentText.value : departmentSelect.value;
+        const total = parseInt(document.getElementById("total").value);
+        const evacuated = parseInt(document.getElementById("evacuated").value);
+        const note = document.getElementById("note").value;
+        
+        const hasVisitor = hasVisitorCheckbox.checked;
+        const visitorTotal = hasVisitor ? parseInt(visitorTotalInput.value) : 0;
+        
+        if (!reporter || !contact || !division || !department || isNaN(total) || isNaN(evacuated)) {
+            alert("모든 필수 항목을 입력해주세요.");
+            return;
+        }
+        
+        if (hasVisitor && isNaN(visitorTotal)) {
+            alert("내방객 인원을 숫자로 입력해주세요.");
+            return;
+        }
 
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-          <td>${reporter}</td>
-          <td>${contact}</td>
-          <td>${division}</td>
-          <td>${department}</td>
-          <td>${total}</td>
-          <td>${evacuated}</td>
-          <td>${remaining}</td>
-          <td>${note ? '<span class="note-marker" onclick="alert(\''+note.replace(/'/g,"\\'")+'\')">*</span>' : ''}</td>
-        `;
-        tableBody.appendChild(tr);
+        const remaining = total - evacuated;
+        
+        if (remaining < 0) {
+            alert("대피완료 인원이 대피대상자보다 많을 수 없습니다.");
+            return;
+        }
 
-        this.reset();
-      } else {
-        alert("제출 실패: " + (result.error || "알 수 없는 오류"));
-      }
+        const data = {reporter, contact, division, department, total, evacuated, remaining, note, hasVisitor, visitorTotal};
+        
+        submitBtn.disabled = true;
+        submitBtn.classList.add('loading-btn');
+        loadingSpinner.style.display = 'block';
+        submitBtn.childNodes[1].nodeValue = ' 제출 중...';
 
-    } catch(err) {
-      console.error(err);
-      alert("오류 발생: " + err);
-    }
-  });
+        google.script.run
+            .withSuccessHandler(function(result) {
+                if (result.result === "success") {
+                    alert("보고가 성공적으로 제출되었습니다.");
+                    reportForm.reset();
+                } else {
+                    alert("제출 실패: " + (result.error || "알 수 없는 오류"));
+                }
+            })
+            .withFailureHandler(function(error) {
+                console.error(error);
+                alert("오류 발생: " + error.message);
+            })
+            .doPostWrapper(data);
+            
+        submitBtn.disabled = false;
+        submitBtn.classList.remove('loading-btn');
+        loadingSpinner.style.display = 'none';
+        submitBtn.childNodes[1].nodeValue = '보고 제출';
+    });
 </script>
 
 </body>
