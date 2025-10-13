@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-    <base target="_top">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>비상대피 인원 보고</title>
@@ -37,25 +36,22 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
-        /* PC 화면 대응 (반응형 디자인) */
+        .dashboard-link { text-align: right; margin-bottom: 20px; }
         @media (min-width: 768px) {
-            .form-container, .result-container {
-                max-width: 600px;
-                padding: 30px;
-                margin: 40px auto;
-            }
-            h2 {
-                font-size: 2rem;
-            }
-            label {
-                font-size: 1rem;
-            }
+            .form-container { max-width: 600px; padding: 30px; margin: 40px auto; border-radius: 12px; }
+            h2 { font-size: 2rem; }
+            label { font-size: 1rem; }
         }
     </style>
 </head>
 <body>
 
 <div class="form-container">
+    <div class="dashboard-link">
+        <a href="https://docs.google.com/spreadsheets/d/10Rb7X0BkhpodDEv63lnLjUZl1WxlfZv1LujH0cloWHo/edit?usp=sharing" target="_blank" style="color: #007bff; text-decoration: none; font-size: 0.9rem;">
+            📊 보고 현황 대시보드 보기
+        </a>
+    </div>
     <h2>비상대피 인원 보고</h2>
     <form id="reportForm">
         <label for="reporter">보고자 성명</label>
@@ -98,13 +94,10 @@
     </form>
 </div>
 
-<div style="text-align: center; margin-top: 20px;">
-    <a href="https://docs.google.com/spreadsheets/d/10Rb7X0BkhpodDEv63lnLjUZl1WxlfZv1LujH0cloWHo/edit?usp=sharing" target="_blank" style="color: #007bff; text-decoration: none; font-size: 0.9rem;">
-        📊 보고 현황 대시보드 보기
-    </a>
-</div>
-
 <script>
+    // 이 URL을 앱스크립트 배포 URL로 변경하세요.
+    const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbzXLNSCsGowWaQRUtfPZXRnOFtFjKtcK5gTNN068UPcXTnTKo7UU_QAPzmg0eJYoud_/exec";
+    
     const reportForm = document.getElementById("reportForm");
     const contactInput = document.getElementById("contact");
     const divisionSelect = document.getElementById("division");
@@ -208,7 +201,7 @@
         e.target.value = formattedValue;
     });
 
-    reportForm.addEventListener("submit", function(e){
+    reportForm.addEventListener("submit", async function(e){
         e.preventDefault();
 
         const reporter = document.getElementById("reporter").value;
@@ -246,25 +239,32 @@
         loadingSpinner.style.display = 'block';
         submitBtn.childNodes[1].nodeValue = ' 제출 중...';
 
-        google.script.run
-            .withSuccessHandler(function(result) {
-                if (result.result === "success") {
-                    alert("보고가 성공적으로 제출되었습니다.");
-                    reportForm.reset();
-                } else {
-                    alert("제출 실패: " + (result.error || "알 수 없는 오류"));
-                }
-            })
-            .withFailureHandler(function(error) {
-                console.error(error);
-                alert("오류 발생: " + error.message);
-            })
-            .doPostWrapper(data);
-            
-        submitBtn.disabled = false;
-        submitBtn.classList.remove('loading-btn');
-        loadingSpinner.style.display = 'none';
-        submitBtn.childNodes[1].nodeValue = '보고 제출';
+        try {
+            const res = await fetch(WEBAPP_URL, {
+                method: "POST",
+                cache: "no-cache",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(data)
+            });
+
+            const result = await res.json();
+
+            if (result.result === "success") {
+                alert("보고가 성공적으로 제출되었습니다.");
+                reportForm.reset();
+            } else {
+                alert("제출 실패: " + (result.error || "알 수 없는 오류"));
+            }
+
+        } catch(err) {
+            console.error(err);
+            alert("오류 발생: 네트워크 연결을 확인하세요.");
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.classList.remove('loading-btn');
+            loadingSpinner.style.display = 'none';
+            submitBtn.childNodes[1].nodeValue = '보고 제출';
+        }
     });
 </script>
 
