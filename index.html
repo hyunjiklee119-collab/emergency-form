@@ -1,280 +1,335 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>비상대피 인원 보고</title>
-    <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; margin: 0; background: #f0f2f5; color: #333; }
-        h2 { text-align: center; margin: 1.5rem 0; color: #1a237e; }
-        .form-container { display: flex; flex-direction: column; gap: 15px; max-width: 480px; margin: 20px auto; padding: 20px; background: #fff; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
-        label { display: block; margin-bottom: 5px; font-weight: bold; font-size: 0.95rem; color: #444; }
-        input, select, textarea { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 8px; font-size: 1rem; box-sizing: border-box; transition: border-color 0.3s; }
-        input:focus, select:focus, textarea:focus { border-color: #007bff; outline: none; box-shadow: 0 0 0 3px rgba(0,123,255,0.25); }
-        textarea { resize: vertical; min-height: 80px; }
-        button { width: 100%; padding: 12px; background: #007bff; color: #fff; border: none; border-radius: 8px; font-size: 1.1rem; font-weight: bold; cursor: pointer; transition: background-color 0.3s, transform 0.1s; margin-top: 10px; }
-        button:hover { background: #0056b3; }
-        button:active { transform: scale(0.99); }
-        .note-tip { font-size: 0.85rem; color: #777; margin-top: 5px; text-align: right; }
-        .checkbox-group { display: flex; align-items: center; gap: 10px; }
-        .loading-spinner {
-            border: 4px solid rgba(255, 255, 255, 0.3);
-            border-top: 4px solid #fff;
-            border-radius: 50%;
-            width: 20px;
-            height: 20px;
-            animation: spin 1s linear infinite;
-            margin-right: 10px;
-            display: none;
-        }
-        .loading-btn {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        .dashboard-link { text-align: right; margin-bottom: 20px; }
-        @media (min-width: 768px) {
-            .form-container { max-width: 600px; padding: 30px; margin: 40px auto; border-radius: 12px; }
-            h2 { font-size: 2rem; }
-            label { font-size: 1rem; }
-        }
-    </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>비상대피 인원 보고</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; margin: 0; background: #f0f2f5; color: #333; }
+        h2 { text-align: center; margin: 1.5rem 0; color: #1a237e; }
+        .form-container { display: flex; flex-direction: column; gap: 15px; max-width: 480px; margin: 20px auto; padding: 20px; background: #fff; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        label { display: block; margin-bottom: 5px; font-weight: bold; font-size: 0.95rem; color: #444; }
+        input, select, textarea { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 8px; font-size: 1rem; box-sizing: border-box; transition: border-color 0.3s; }
+        input:focus, select:focus, textarea:focus { border-color: #007bff; outline: none; box-shadow: 0 0 0 3px rgba(0,123,255,0.25); }
+        textarea { resize: vertical; min-height: 80px; }
+        button { width: 100%; padding: 12px; background: #007bff; color: #fff; border: none; border-radius: 8px; font-size: 1.1rem; font-weight: bold; cursor: pointer; transition: background-color 0.3s, transform 0.1s; margin-top: 10px; }
+        button:hover { background: #0056b3; }
+        button:active { transform: scale(0.99); }
+        .note-tip { font-size: 0.85rem; color: #777; margin-top: 5px; text-align: right; }
+
+        /* 내방객 포함 여부 체크박스 그룹 (수정됨) */
+        .checkbox-group { 
+            display: flex; 
+            align-items: center; 
+            justify-content: flex-start;
+            gap: 8px; 
+            margin-bottom: 5px;
+            flex-wrap: nowrap;
+        }
+        .checkbox-group label {
+            display: inline; 
+            margin: 0;
+            font-weight: bold;
+            font-size: 0.95rem;
+            color: #444;
+            white-space: nowrap;
+        }
+
+        .loading-spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid #fff;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+            display: none;
+        }
+        .loading-btn {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .dashboard-link { text-align: right; margin-bottom: 20px; }
+        @media (min-width: 768px) {
+            .form-container { max-width: 600px; padding: 30px; margin: 40px auto; border-radius: 12px; }
+            h2 { font-size: 2rem; }
+            label { font-size: 1rem; }
+        }
+        /* 개인정보 동의 영역 */
+        .privacy-consent-container { text-align: center; margin-top: 20px; }
+        .privacy-consent-group { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
+        .privacy-consent-group label { font-weight: bold; font-size: 0.95rem; color: #444; margin: 0; cursor: pointer; }
+    </style>
 </head>
 <body>
 
 <div class="form-container">
-    <div class="dashboard-link">
-        <a href="dashboard.html" target="_blank" style="color: #007bff; text-decoration: none; font-size: 0.9rem;">
-            📊 보고 현황 대시보드 보기
-        </a>
-    </div>
-    <h2>비상대피 인원 보고</h2>
-    <form id="reportForm">
-        <label for="reporter">보고자 성명</label>
-        <input type="text" id="reporter" placeholder="성명 입력" required>
-        <label for="contact">연락처</label>
-        <input type="tel" id="contact" placeholder="010-1234-5678" required>
-        <div class="note-tip">숫자만 입력해 주세요. 하이픈(-)은 자동으로 입력됩니다.</div>
-        <label for="division">소속 사업부/실</label>
-        <select id="division" required>
-            <option value="">-- 선택 --</option>
-            <option value="SYSTEM사업부">SYSTEM사업부</option>
-            <option value="INFRA사업부">INFRA사업부</option>
-            <option value="경영지원실">경영지원실</option>
-            <option value="직속(연구소, 구매팀, 안전환경, 글로벌TF)">직속(연구소, 구매팀, 안전환경, 글로벌TF)</option>
-            <option value="협력사">협력사</option>
-            <option value="기타">기타</option>
-        </select>
-        <label for="department">세부 팀/부서명</label>
-        <select id="department" required></select>
-        <input type="text" id="department-text" placeholder="부서명 입력" style="display:none;">
-        <div id="commonDeptNote" class="note-tip" style="display:none; color: #007bff; text-align: left;">* 소속 사업부의 소수 팀은 '사업부 공통'으로 보고 가능합니다.</div>
-        <div class="checkbox-group">
-            <input type="checkbox" id="hasVisitor">
-            <label for="hasVisitor" style="font-weight:normal; margin:0;">내방객 포함 여부</label>
-        </div>
-        <label for="visitorTotal" id="visitorLabel" style="display:none;">내방객 인원</label>
-        <input type="number" id="visitorTotal" min="0" placeholder="0" style="display:none;">
-        <label for="total">대피대상자 수</label>
-        <input type="number" id="total" min="0" required>
-        <div class="note-tip">해당 부서의 총 인원 수</div>
-        <label for="evacuated">대피완료 인원 수</label>
-        <input type="number" id="evacuated" min="0" required>
-        <div class="note-tip">대피 장소에 도착한 인원 수</div>
-        <label for="note">특이사항</label>
-        <textarea id="note" rows="3" placeholder="특이사항 입력 (예: 부상자 발생, 잔류자 발생 사유 등)"></textarea>
+    <div class="dashboard-link">
+        <a href="dashboard.html" target="_blank" style="color: #007bff; text-decoration: none; font-size: 0.9rem;">
+            📊 보고 현황 대시보드 보기
+        </a>
+    </div>
+    <h2>비상대피 인원 보고</h2>
+    <form id="reportForm">
+        <label for="reporter">보고자 성명</label>
+        <input type="text" id="reporter" placeholder="성명 입력" required>
 
-                <div class="checkbox-group" style="margin-top: 20px;">
-            <input type="checkbox" id="privacyConsent" required>
-            <label for="privacyConsent" style="font-weight:normal; margin:0; font-size:0.9rem;">
-                개인정보 수집 및 이용에 동의합니다.
-            </label>
-        </div>
+        <label for="contact">연락처</label>
+        <input type="tel" id="contact" placeholder="010-1234-5678" required>
+        <div class="note-tip">숫자만 입력해 주세요. 하이픈(-)은 자동으로 입력됩니다.</div>
 
-        <button type="submit" id="submitBtn">
-            <div class="loading-spinner"></div>
-            보고 제출
-        </button>
-    </form>
+        <label for="division">소속 사업부/실</label>
+        <select id="division" required>
+            <option value="">-- 선택 --</option>
+            <option value="SYSTEM사업부">SYSTEM사업부</option>
+            <option value="INFRA사업부">INFRA사업부</option>
+            <option value="경영지원실">경영지원실</option>
+            <option value="직속(연구소, 구매팀, 안전환경, 글로벌TF)">직속(연구소, 구매팀, 안전환경, 글로벌TF)</option>
+            <option value="협력사">협력사</option>
+            <option value="기타">기타</option>
+        </select>
+
+        <label for="department">세부 팀/부서명</label>
+        <select id="department" required></select>
+        <input type="text" id="department-text" placeholder="부서명 입력" style="display:none;">
+        <div id="commonDeptNote" class="note-tip" style="display:none; color: #007bff; text-align: left;">
+            * 소속 사업부의 소수 팀은 '사업부 공통'으로 보고 가능합니다.
+        </div>
+
+        <label for="total">대피대상자 수</label>
+        <input type="number" id="total" min="0" required>
+        <div class="note-tip">해당 부서의 총 인원 수</div>
+
+        <label for="evacuated">대피완료 인원 수</label>
+        <input type="number" id="evacuated" min="0" required>
+        <div class="note-tip">대피 장소에 도착한 인원 수</div>
+
+        <!-- 수정된 내방객 포함 여부 섹션 -->
+        <div class="checkbox-group">
+            <label for="hasVisitor">내방객 포함 여부</label>
+            <input type="checkbox" id="hasVisitor">
+        </div>
+
+        <label for="visitorTotal" id="visitorTotalLabel" style="display:none;">내방객 총 인원</label>
+        <input type="number" id="visitorTotal" min="0" placeholder="0" style="display:none;">
+
+        <label for="visitorEvacuated" id="visitorEvacuatedLabel" style="display:none;">내방객 대피완료 인원</label>
+        <input type="number" id="visitorEvacuated" min="0" placeholder="0" style="display:none;">
+
+        <label for="note">특이사항</label>
+        <textarea id="note" rows="3" placeholder="특이사항 입력 (예: 부상자 발생, 잔류자 발생 사유 등)"></textarea>
+
+        <div class="privacy-consent-container">
+            <div class="privacy-consent-group">
+                <input type="checkbox" id="privacyConsent" name="privacyConsent" required>
+                <label for="privacyConsent">개인정보 수집 및 이용에 동의합니다.</label>
+            </div>
+        </div>
+
+        <button type="submit" id="submitBtn">
+            <div class="loading-spinner"></div>
+            보고 제출
+        </button>
+    </form>
 </div>
 
 <script>
-    // 이 URL을 앱스크립트 배포 URL로 변경하세요.
-    const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbysncTbZ4pE6A4o4acDRaJ3SXXzWE5SwmkIUd3-Vzc-TB7tvNTomUs6fSpEYFLLiWks/exec";
-    
-    const reportForm = document.getElementById("reportForm");
-    const contactInput = document.getElementById("contact");
-    const divisionSelect = document.getElementById("division");
-    const departmentSelect = document.getElementById("department");
-    const departmentText = document.getElementById("department-text");
-    const commonDeptNote = document.getElementById("commonDeptNote");
-    const hasVisitorCheckbox = document.getElementById("hasVisitor");
-    const visitorLabel = document.getElementById("visitorLabel");
-    const visitorTotalInput = document.getElementById("visitorTotal");
-    const consentCheckbox = document.getElementById("privacyConsent");
-    const submitBtn = document.getElementById("submitBtn");
-    const loadingSpinner = submitBtn.querySelector(".loading-spinner");
-    
-    const departments = {
-        'SYSTEM사업부': ['사업부 공통', '영업팀', 'CS팀', '제조팀', '생산기술팀', '품질G'],
-        'INFRA사업부': ['사업부 공통', 'ENC사업팀', 'EPC사업팀'],
-        '경영지원실': ['사업부 공통', '재무팀', '인사팀', '정보전략팀', '기획G', '준법경영G'],
-        '직속(연구소, 구매팀, 안전환경, 글로벌TF)': ['사업부 공통', '연구소', '구매팀', '안전환경팀', '글로벌TF'],
-        '협력사': [],
-        '기타': []
-    };
+    const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbysncTbZ4pE6A4o4acDRaJ3SXXzWE5SwmkIUd3-Vzc-TB7tvNTomUs6fSpEYFLLiWks/exec";
 
-    hasVisitorCheckbox.addEventListener('change', function() {
-        if (this.checked) {
-            visitorLabel.style.display = 'block';
-            visitorTotalInput.style.display = 'block';
-            visitorTotalInput.setAttribute('required', 'required');
-            visitorTotalInput.value = '';
-        } else {
-            visitorLabel.style.display = 'none';
-            visitorTotalInput.style.display = 'none';
-            visitorTotalInput.removeAttribute('required');
-            visitorTotalInput.value = '0';
-        }
-    });
+    const reportForm = document.getElementById("reportForm");
+    const contactInput = document.getElementById("contact");
+    const divisionSelect = document.getElementById("division");
+    const departmentSelect = document.getElementById("department");
+    const departmentText = document.getElementById("department-text");
+    const commonDeptNote = document.getElementById("commonDeptNote");
+    const hasVisitorCheckbox = document.getElementById("hasVisitor");
 
-    divisionSelect.addEventListener('change', function() {
-        const selectedDivision = this.value;
-        const subDepartments = departments[selectedDivision] || [];
-        
-        departmentSelect.innerHTML = '';
-        
-        if (selectedDivision === '협력사' || selectedDivision === '기타') {
-            departmentSelect.style.display = 'none';
-            departmentText.style.display = 'block';
-            commonDeptNote.style.display = 'none';
-            departmentText.setAttribute('required', 'required');
-            departmentSelect.removeAttribute('required');
-        } else {
-            departmentSelect.style.display = 'block';
-            departmentText.style.display = 'none';
-            commonDeptNote.style.display = 'block';
-            departmentText.removeAttribute('required');
-            departmentSelect.setAttribute('required', 'required');
-            
-            const defaultOption = document.createElement('option');
-            defaultOption.text = '-- 선택 --';
-            defaultOption.value = '';
-            departmentSelect.appendChild(defaultOption);
-            
-            subDepartments.forEach(dept => {
-                const option = document.createElement('option');
-                option.value = dept;
-                option.text = dept;
-                departmentSelect.appendChild(option);
-            });
-        }
-    });
+    const visitorTotalLabel = document.getElementById("visitorTotalLabel");
+    const visitorTotalInput = document.getElementById("visitorTotal");
+    const visitorEvacuatedLabel = document.getElementById("visitorEvacuatedLabel");
+    const visitorEvacuatedInput = document.getElementById("visitorEvacuated");
 
-    contactInput.addEventListener("input", function(e) {
-        const value = e.target.value.replace(/\D/g, "");
-        const originalLength = value.length;
-        let formattedValue = "";
+    const submitBtn = document.getElementById("submitBtn");
+    const loadingSpinner = submitBtn.querySelector(".loading-spinner");
 
-        if (originalLength > 0) {
-            if (value.startsWith("02")) {
-                if (originalLength > 2) {
-                    formattedValue += value.substring(0, 2) + "-";
-                    if (originalLength > 6) {
-                        formattedValue += value.substring(2, 6) + "-";
-                        formattedValue += value.substring(6, 10);
-                    } else {
-                        formattedValue += value.substring(2, 6);
-                    }
-                } else {
-                    formattedValue = value;
-                }
-            } else {
-                if (originalLength > 3) {
-                    formattedValue += value.substring(0, 3) + "-";
-                    if (originalLength > 7) {
-                        formattedValue += value.substring(3, 7) + "-";
-                        formattedValue += value.substring(7, 11);
-                    } else {
-                        formattedValue += value.substring(3, 7);
-                    }
-                } else {
-                    formattedValue = value;
-                }
-            }
-        }
-        e.target.value = formattedValue;
-    });
+    const departments = {
+        'SYSTEM사업부': ['사업부 공통', '영업팀', 'CS팀', '제조팀', '생산기술팀', '품질G'],
+        'INFRA사업부': ['사업부 공통', 'ENC사업팀', 'EPC사업팀'],
+        '경영지원실': ['사업부 공통', '재무팀', '인사팀', '정보전략팀', '기획G', '준법경영G'],
+        '직속(연구소, 구매팀, 안전환경, 글로벌TF)': ['사업부 공통', '연구소', '구매팀', '안전환경팀', '글로벌TF'],
+        '협력사': [],
+        '기타': []
+    };
 
-    reportForm.addEventListener("submit", async function(e){
-        e.preventDefault();
+    hasVisitorCheckbox.addEventListener('change', function() {
+        if (this.checked) {
+            visitorTotalLabel.style.display = 'block';
+            visitorTotalInput.style.display = 'block';
+            visitorEvacuatedLabel.style.display = 'block';
+            visitorEvacuatedInput.style.display = 'block';
+            visitorTotalInput.setAttribute('required', 'required');
+            visitorEvacuatedInput.setAttribute('required', 'required');
+            visitorTotalInput.value = '';
+            visitorEvacuatedInput.value = '';
+        } else {
+            visitorTotalLabel.style.display = 'none';
+            visitorTotalInput.style.display = 'none';
+            visitorEvacuatedLabel.style.display = 'none';
+            visitorEvacuatedInput.style.display = 'none';
+            visitorTotalInput.removeAttribute('required');
+            visitorEvacuatedInput.removeAttribute('required');
+            visitorTotalInput.value = '0';
+            visitorEvacuatedInput.value = '0';
+        }
+    });
 
-        const reporter = document.getElementById("reporter").value;
-        const contact = document.getElementById("contact").value;
-        const division = divisionSelect.value;
-        const department = (division === '협력사' || division === '기타') ? departmentText.value : departmentSelect.value;
-        const total = parseInt(document.getElementById("total").value);
-        const evacuated = parseInt(document.getElementById("evacuated").value);
-        const note = document.getElementById("note").value;
-        
-        const hasVisitor = hasVisitorCheckbox.checked;
-        const visitorTotal = hasVisitor ? parseInt(visitorTotalInput.value) : 0;
-        
-        if (!reporter || !contact || !division || !department || isNaN(total) || isNaN(evacuated)) {
-            alert("모든 필수 항목을 입력해주세요.");
-            return;
-        }
-        
-        if (hasVisitor && isNaN(visitorTotal)) {
-            alert("내방객 인원을 숫자로 입력해주세요.");
-            return;
-        }
+    divisionSelect.addEventListener('change', function() {
+        const selectedDivision = this.value;
+        const subDepartments = departments[selectedDivision] || [];
+        departmentSelect.innerHTML = '';
 
-        const remaining = total - evacuated;
-        
-        if (remaining < 0) {
-            alert("대피완료 인원이 대피대상자보다 많을 수 없습니다.");
-            return;
-        }
+        if (selectedDivision === '협력사' || selectedDivision === '기타') {
+            departmentSelect.style.display = 'none';
+            departmentText.style.display = 'block';
+            commonDeptNote.style.display = 'none';
+            departmentText.setAttribute('required', 'required');
+            departmentSelect.removeAttribute('required');
+        } else {
+            departmentSelect.style.display = 'block';
+            departmentText.style.display = 'none';
+            commonDeptNote.style.display = 'block';
+            departmentText.removeAttribute('required');
+            departmentSelect.setAttribute('required', 'required');
 
-        const data = {reporter, contact, division, department, total, evacuated, remaining, note, hasVisitor, visitorTotal};
-        
-        submitBtn.disabled = true;
-        submitBtn.classList.add('loading-btn');
-        loadingSpinner.style.display = 'block';
-        submitBtn.childNodes[1].nodeValue = ' 제출 중...';
+            const defaultOption = document.createElement('option');
+            defaultOption.text = '-- 선택 --';
+            defaultOption.value = '';
+            departmentSelect.appendChild(defaultOption);
 
-        try {
-            const res = await fetch(WEBAPP_URL, {
-                method: "POST",
-                cache: "no-cache",
-                headers: { "Content-Type": "text/plain;charset=utf-8" },
-                body: JSON.stringify(data)
-            });
+            subDepartments.forEach(dept => {
+                const option = document.createElement('option');
+                option.value = dept;
+                option.text = dept;
+                departmentSelect.appendChild(option);
+            });
+        }
+    });
 
-            const result = await res.json();
+    contactInput.addEventListener("input", function(e) {
+        const value = e.target.value.replace(/\D/g, "");
+        const originalLength = value.length;
+        let formattedValue = "";
 
-            if (result.result === "success") {
-                alert("보고가 성공적으로 제출되었습니다.");
-                reportForm.reset();
-            } else {
-                alert("제출 실패: " + (result.error || "알 수 없는 오류"));
-            }
+        if (originalLength > 0) {
+            if (value.startsWith("02")) {
+                if (originalLength > 2) {
+                    formattedValue += value.substring(0, 2) + "-";
+                    if (originalLength > 6) {
+                        formattedValue += value.substring(2, 6) + "-";
+                        formattedValue += value.substring(6, 10);
+                    } else {
+                        formattedValue += value.substring(2, 6);
+                    }
+                } else {
+                    formattedValue = value;
+                }
+            } else {
+                if (originalLength > 3) {
+                    formattedValue += value.substring(0, 3) + "-";
+                    if (originalLength > 7) {
+                        formattedValue += value.substring(3, 7) + "-";
+                        formattedValue += value.substring(7, 11);
+                    } else {
+                        formattedValue += value.substring(3, 7);
+                    }
+                } else {
+                    formattedValue = value;
+                }
+            }
+        }
+        e.target.value = formattedValue;
+    });
 
-        } catch(err) {
-            console.error(err);
-            alert("오류 발생: 네트워크 연결을 확인하세요.");
-        } finally {
-            submitBtn.disabled = false;
-            submitBtn.classList.remove('loading-btn');
-            loadingSpinner.style.display = 'none';
-            submitBtn.childNodes[1].nodeValue = '보고 제출';
-        }
-    });
+    reportForm.addEventListener("submit", async function(e){
+        e.preventDefault();
+
+        const privacyConsent = document.getElementById("privacyConsent").checked;
+        if (!privacyConsent) {
+            alert("개인정보 수집 및 이용에 동의해야 보고를 제출할 수 있습니다.");
+            return;
+        }
+
+        const reporter = document.getElementById("reporter").value;
+        const contact = document.getElementById("contact").value;
+        const division = divisionSelect.value;
+        const department = (division === '협력사' || division === '기타') ? departmentText.value : departmentSelect.value;
+        const total = parseInt(document.getElementById("total").value);
+        const evacuated = parseInt(document.getElementById("evacuated").value);
+        const note = document.getElementById("note").value;
+
+        const hasVisitor = hasVisitorCheckbox.checked;
+        const visitorTotal = hasVisitor ? parseInt(visitorTotalInput.value) : 0;
+        const visitorEvacuated = hasVisitor ? parseInt(visitorEvacuatedInput.value) : 0;
+
+        if (!reporter || !contact || !division || !department || isNaN(total) || isNaN(evacuated)) {
+            alert("모든 필수 항목을 입력해주세요.");
+            return;
+        }
+
+        if (hasVisitor && (isNaN(visitorTotal) || isNaN(visitorEvacuated))) {
+            alert("내방객 인원을 숫자로 입력해주세요.");
+            return;
+        }
+        if (hasVisitor && visitorEvacuated > visitorTotal) {
+            alert("내방객 대피완료 인원이 내방객 총 인원보다 많을 수 없습니다.");
+            return;
+        }
+
+        const remaining = total - evacuated;
+        if (remaining < 0) {
+            alert("대피완료 인원이 대피대상자보다 많을 수 없습니다.");
+            return;
+        }
+
+        const data = {reporter, contact, division, department, total, evacuated, remaining, note, hasVisitor, visitorTotal, visitorEvacuated};
+
+        submitBtn.disabled = true;
+        submitBtn.classList.add('loading-btn');
+        loadingSpinner.style.display = 'block';
+        submitBtn.childNodes[1].nodeValue = ' 제출 중...';
+
+        try {
+            const res = await fetch(WEBAPP_URL, {
+                method: "POST",
+                cache: "no-cache",
+                headers: { "Content-Type": "text/plain;charset=utf-8" },
+                body: JSON.stringify(data)
+            });
+
+            const result = await res.json();
+
+            if (result.result === "success") {
+                alert("보고가 성공적으로 제출되었습니다.");
+                reportForm.reset();
+            } else {
+                alert("제출 실패: " + (result.error || "알 수 없는 오류"));
+            }
+
+        } catch(err) {
+            console.error(err);
+            alert("오류 발생: 네트워크 연결을 확인하세요.");
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.classList.remove('loading-btn');
+            loadingSpinner.style.display = 'none';
+            submitBtn.childNodes[1].nodeValue = '보고 제출';
+        }
+    });
 </script>
 
 </body>
