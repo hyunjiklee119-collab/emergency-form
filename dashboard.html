@@ -24,7 +24,7 @@
   .summary-table th, .summary-table td {
     padding: 10px 5px;
     text-align: center;
-    border: 1px solid #eee; /* 피벗테이블 형태를 위해 셀 경계 추가 */
+    border: 1px solid #eee;
   }
   .summary-table th {
     background: #e9ecef;
@@ -167,7 +167,7 @@
   <thead>
     <tr>
       <th rowspan="2">division</th>
-      <th colspan="3">임직원</th>
+      <th colspan="3">임직원 & 협력사</th>
       <th colspan="3">내방객</th>
     </tr>
     <tr>
@@ -184,9 +184,9 @@
   <tfoot>
     <tr class="total-row">
       <td>총계</td>
-      <td id="grandTotalEmployeeTotal">-</td>
-      <td id="grandTotalEmployeeEvacuated">-</td>
-      <td id="grandTotalEmployeeRemaining">-</td>
+      <td id="grandTotalTotal">-</td>
+      <td id="grandTotalEvacuated">-</td>
+      <td id="grandTotalRemaining">-</td>
       <td id="grandTotalVisitorTotal">-</td>
       <td id="grandTotalVisitorEvacuated">-</td>
       <td id="grandTotalVisitorRemaining">-</td>
@@ -235,6 +235,7 @@ const departments = {
     'INFRA사업부': ['사업부 공통', 'ENC사업팀', 'EPC사업팀'],
     '경영지원실': ['사업부 공통', '재무팀', '인사팀', '정보전략팀', '기획G', '준법경영G'],
     '직속(연구소, 구매팀, 안전환경, 글로벌TF)': ['사업부 공통', '연구소', '구매팀', '안전환경팀', '글로벌TF'],
+    '협력사': ['협력사'],
 };
 
 async function fetchData() {
@@ -261,85 +262,79 @@ function aggregateDataForPivot(summary) {
 
     divisions.forEach(div => {
         aggregated[div] = {
-            employeeTotal: 0, employeeEvacuated: 0, employeeRemaining: 0,
-            visitorTotal: 0, visitorEvacuated: 0, visitorRemaining: 0
+            total: 0, evacuated: 0, remaining: 0
         };
     });
+    
+    // 내방객 데이터는 별도로 집계
+    const visitorData = {
+        total: 0, evacuated: 0, remaining: 0
+    };
 
     summary.forEach(row => {
-        let division = row.division;
+        const division = row.division;
+        const total = row.total || 0;
+        const evacuated = row.evacuated || 0;
+        const remaining = row.remaining || 0;
+        
         if (division === '기타') {
-            division = '내방객'; // 내방객을 별도 구분으로 처리
-        }
-        if (aggregated[division]) {
-            if (row.department === '협력사') {
-                aggregated[division].employeeTotal += row.total || 0;
-                aggregated[division].employeeEvacuated += row.evacuated || 0;
-                aggregated[division].employeeRemaining += row.remaining || 0;
-            } else if (row.department === '기타') { // 내방객 데이터는 '기타'에 속함
-                aggregated['내방객'].visitorTotal += row.total || 0;
-                aggregated['내방객'].visitorEvacuated += row.evacuated || 0;
-                aggregated['내방객'].visitorRemaining += row.remaining || 0;
-            } else { // 임직원 데이터
-                aggregated[division].employeeTotal += row.total || 0;
-                aggregated[division].employeeEvacuated += row.evacuated || 0;
-                aggregated[division].employeeRemaining += row.remaining || 0;
-            }
+            visitorData.total += total;
+            visitorData.evacuated += evacuated;
+            visitorData.remaining += remaining;
+        } else if (aggregated[division]) {
+            aggregated[division].total += total;
+            aggregated[division].evacuated += evacuated;
+            aggregated[division].remaining += remaining;
         }
     });
 
-    // 협력사, 내방객 데이터 총계를 최종 합계에 포함시키기
-    const finalData = {};
-    finalData['임직원'] = aggregated['경영지원실'];
-    finalData['협력사'] = aggregated['협력사'];
-    finalData['내방객'] = aggregated['내방객'];
-    finalData['직속(연구소, 구매팀, 안전환경, 글로벌TF)'] = aggregated['직속(연구소, 구매팀, 안전환경, 글로벌TF)'];
-    finalData['INFRA사업부'] = aggregated['INFRA사업부'];
-    finalData['SYSTEM사업부'] = aggregated['SYSTEM사업부'];
-    
-    return finalData;
+    // 모든 데이터를 하나의 객체로 반환
+    return { aggregated, visitorData };
 }
 
-function renderPivotTable(pivotTableData) {
+function renderPivotTable(data) {
     const tbody = document.getElementById("pivotTableBody");
     tbody.innerHTML = '';
     
-    let grandTotalEmployeeTotal = 0;
-    let grandTotalEmployeeEvacuated = 0;
-    let grandTotalEmployeeRemaining = 0;
-    let grandTotalVisitorTotal = 0;
-    let grandTotalVisitorEvacuated = 0;
-    let grandTotalVisitorRemaining = 0;
-
-    for (const division in pivotTableData) {
+    const { aggregated, visitorData } = data;
+    
+    let grandTotalTotal = 0;
+    let grandTotalEvacuated = 0;
+    let grandTotalRemaining = 0;
+    
+    const orderedDivisions = ['경영지원실', '생산', '직속(연구소, 구매팀, 안전환경, 글로벌TF)', 'INFRA사업부', 'SYSTEM사업부', '협력사'];
+    
+    orderedDivisions.forEach(division => {
+        const rowData = aggregated[division];
         const row = document.createElement("tr");
-        const data = pivotTableData[division];
         
+        // 내방객 데이터는 첫 행에만 표시
+        let visitorCells = '';
+        if (division === orderedDivisions[0]) {
+            visitorCells = `<td rowspan="${orderedDivisions.length}">${visitorData.total}</td><td rowspan="${orderedDivisions.length}">${visitorData.evacuated}</td><td rowspan="${orderedDivisions.length}">${visitorData.remaining}</td>`;
+        }
+
         row.innerHTML = `
             <td>${division}</td>
-            <td>${data.employeeTotal}</td>
-            <td>${data.employeeEvacuated}</td>
-            <td>${data.employeeRemaining}</td>
-            <td>${data.visitorTotal}</td>
-            <td>${data.visitorEvacuated}</td>
-            <td>${data.visitorRemaining}</td>
+            <td>${rowData.total}</td>
+            <td>${rowData.evacuated}</td>
+            <td>${rowData.remaining}</td>
+            ${visitorCells}
         `;
         tbody.appendChild(row);
 
-        grandTotalEmployeeTotal += data.employeeTotal;
-        grandTotalEmployeeEvacuated += data.employeeEvacuated;
-        grandTotalEmployeeRemaining += data.employeeRemaining;
-        grandTotalVisitorTotal += data.visitorTotal;
-        grandTotalVisitorEvacuated += data.visitorEvacuated;
-        grandTotalVisitorRemaining += data.visitorRemaining;
-    }
+        grandTotalTotal += rowData.total;
+        grandTotalEvacuated += rowData.evacuated;
+        grandTotalRemaining += rowData.remaining;
+    });
 
-    document.getElementById("grandTotalEmployeeTotal").textContent = grandTotalEmployeeTotal;
-    document.getElementById("grandTotalEmployeeEvacuated").textContent = grandTotalEmployeeEvacuated;
-    document.getElementById("grandTotalEmployeeRemaining").textContent = grandTotalEmployeeRemaining;
-    document.getElementById("grandTotalVisitorTotal").textContent = grandTotalVisitorTotal;
-    document.getElementById("grandTotalVisitorEvacuated").textContent = grandTotalVisitorEvacuated;
-    document.getElementById("grandTotalVisitorRemaining").textContent = grandTotalVisitorRemaining;
+    // 총계 업데이트
+    document.getElementById("grandTotalTotal").textContent = grandTotalTotal;
+    document.getElementById("grandTotalEvacuated").textContent = grandTotalEvacuated;
+    document.getElementById("grandTotalRemaining").textContent = grandTotalRemaining;
+    document.getElementById("grandTotalVisitorTotal").textContent = visitorData.total;
+    document.getElementById("grandTotalVisitorEvacuated").textContent = visitorData.evacuated;
+    document.getElementById("grandTotalVisitorRemaining").textContent = visitorData.remaining;
 }
 
 function renderAccordion(summary = []) {
