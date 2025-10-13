@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>비상대피 현황 대시보드</title>
+    <style>
+        body { font-family: 'Segoe UI', Arial, sans-serif; background: #f0f2f5; margin: 0; padding: 20px; color: #333; }
+        .dashboard-container { max-width: 900px; margin: 0 auto; display: grid; gap: 20px; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+        .score-card { background: #fff; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); text-align: center; }
+        .score-card h3 { color: #1a237e; margin: 0 0 10px 0; font-size: 1rem; }
+        .score-card .value { font-size: 2.5rem; font-weight: bold; color: #007bff; }
+        #lastUpdated { font-size: 0.8rem; color: #888; margin-top: 20px; text-align: center; }
+        .loading { text-align: center; padding: 20px; }
+        .loader { border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; width: 30px; height: 30px; animation: spin 2s linear infinite; margin: 0 auto; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+
+<div class="dashboard-container" id="dashboard">
+    <div class="score-card">
+        <h3>총 대피대상자</h3>
+        <p class="value" id="totalCount">-</p>
+    </div>
+    <div class="score-card">
+        <h3>대피완료 인원</h3>
+        <p class="value" id="evacuatedCount">-</p>
+    </div>
+    <div class="score-card">
+        <h3>미대피 인원</h3>
+        <p class="value" id="remainingCount">-</p>
+    </div>
+    <div class="score-card">
+        <h3>내방객 인원</h3>
+        <p class="value" id="visitorCount">-</p>
+    </div>
+</div>
+<div id="lastUpdated"></div>
+<div class="loading" id="loadingMessage">
+    <div class="loader"></div>
+    <p>데이터를 불러오는 중...</p>
+</div>
+
+<script>
+    // 이 URL은 `code.gs`의 GET 요청을 처리할 웹 앱 URL로 변경하세요.
+    // POST 요청 URL과 동일합니다.
+    const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbx47lnZ0IU12-WtAzx_fqNaeGAybSr24fK19nAQ76unQ57xEli5zgbIwSbEr20AKW6L/exec";
+    
+    const totalCountEl = document.getElementById("totalCount");
+    const evacuatedCountEl = document.getElementById("evacuatedCount");
+    const remainingCountEl = document.getElementById("remainingCount");
+    const visitorCountEl = document.getElementById("visitorCount");
+    const lastUpdatedEl = document.getElementById("lastUpdated");
+    const loadingMessageEl = document.getElementById("loadingMessage");
+    const dashboardContainer = document.getElementById("dashboard");
+
+    async function fetchData() {
+        loadingMessageEl.style.display = 'block';
+        dashboardContainer.style.display = 'none';
+        try {
+            // GET 요청은 CORS Preflight가 필요 없으므로, 헤더를 명시할 필요가 없습니다.
+            const response = await fetch(WEBAPP_URL);
+            const result = await response.json();
+            
+            if (result.result === "success") {
+                const data = result.data;
+                totalCountEl.textContent = data.total;
+                evacuatedCountEl.textContent = data.evacuated;
+                remainingCountEl.textContent = data.remaining;
+                visitorCountEl.textContent = data.visitorTotal;
+                lastUpdatedEl.textContent = `마지막 업데이트: ${new Date().toLocaleTimeString()}`;
+            } else {
+                console.error("API 오류:", result.error);
+                totalCountEl.textContent = "에러";
+            }
+        } catch (error) {
+            console.error("데이터 로딩 실패:", error);
+            totalCountEl.textContent = "연결 오류";
+        } finally {
+            loadingMessageEl.style.display = 'none';
+            dashboardContainer.style.display = 'grid';
+        }
+    }
+
+    // 페이지 로드 시 즉시 데이터 불러오기
+    fetchData();
+
+    // 10초마다 데이터 새로고침
+    setInterval(fetchData, 10000);
+</script>
+
+</body>
+</html>
