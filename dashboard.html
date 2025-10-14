@@ -22,23 +22,40 @@
     overflow: hidden;
   }
   .summary-table th, .summary-table td {
-    padding: 10px 5px;
+    padding: 8px 3px;
     text-align: center;
     border: 1px solid #eee;
   }
   .summary-table th {
     background: #e9ecef;
-    font-size: 0.85rem;
+    font-size: 0.75rem;
     font-weight: bold;
     color: #495057;
   }
   .summary-table td {
-    font-size: 1rem;
+    font-size: 0.85rem;
     font-weight: bold;
   }
   .summary-table .total-row {
     font-weight: bold;
     background: #f1f1f1;
+  }
+  .filter-controls {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 15px;
+  }
+  .filter-controls label {
+    font-size: 0.9rem;
+    color: #555;
+  }
+  .filter-controls input[type="date"] {
+    padding: 6px;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+    font-size: 0.9rem;
   }
   .accordion-container {
     background: #fff;
@@ -159,9 +176,28 @@
   .popup-content .close-btn {
     background: #6c757d;
   }
+  .popup-content .input-group.checkbox-group {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+  }
+  .popup-content .input-group.checkbox-group label {
+      margin-bottom: 0;
+  }
+  .popup-content .input-group.checkbox-group input[type="checkbox"] {
+      width: auto;
+  }
 </style>
 </head>
 <body>
+
+<div class="filter-controls">
+  <label for="startDate">시작일:</label>
+  <input type="date" id="startDate">
+  <label for="endDate">종료일:</label>
+  <input type="date" id="endDate">
+  <button onclick="filterData()">조회</button>
+</div>
 
 <table class="summary-table">
   <thead>
@@ -217,6 +253,26 @@
       <label for="popupRemaining">미대피</label>
       <input type="number" id="popupRemaining" disabled>
     </div>
+    
+    <div class="input-group checkbox-group">
+        <label for="popupHasVisitor">내방객 포함</label>
+        <input type="checkbox" id="popupHasVisitor">
+    </div>
+    <div id="visitorFields" style="display:none;">
+        <div class="input-group">
+          <label for="popupVisitorTotal">내방객 총원</label>
+          <input type="number" id="popupVisitorTotal" min="0">
+        </div>
+        <div class="input-group">
+          <label for="popupVisitorEvacuated">내방객 대피완료</label>
+          <input type="number" id="popupVisitorEvacuated" min="0">
+        </div>
+        <div class="input-group">
+          <label for="popupVisitorRemaining">내방객 미대피</label>
+          <input type="number" id="popupVisitorRemaining" disabled>
+        </div>
+    </div>
+
     <div class="input-group">
       <label for="popupNotes">특이사항</label>
       <textarea id="popupNotes"></textarea>
@@ -227,7 +283,7 @@
 </div>
 
 <script>
-const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbye7XaY4INKJ3-6K0VuBoUj2ieGXK3d9zWUDjFmT7lJRH1dWXr2tQQ71XKs1LKnIgqP/exec";
+const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbwx3zhwNBTmXKTw58yo6bfvlXFY5TRLCCPnjcJ_vAd9qFlwxyklm6awOSNvQx0zx_B0/exec";
 let currentReportData = null;
 
 const departments = {
@@ -236,15 +292,23 @@ const departments = {
     '경영지원실': ['사업부 공통', '재무팀', '인사팀', '정보전략팀', '기획G', '준법경영G'],
     '직속(연구소, 구매팀, 안전환경, 글로벌TF)': ['사업부 공통', '연구소', '구매팀', '안전환경팀', '글로벌TF'],
     '협력사': ['협력사'],
+    '기타': ['기타']
 };
 
-async function fetchData() {
+async function fetchData(startDate = null, endDate = null) {
   try {
-    const res = await fetch(`${WEBAPP_URL}?action=getSummary`);
+    let url = `${WEBAPP_URL}?action=getSummary`;
+    if (startDate) {
+      url += `&startDate=${startDate}`;
+    }
+    if (endDate) {
+      url += `&endDate=${endDate}`;
+    }
+
+    const res = await fetch(url);
     const data = await res.json();
     if (data.result === "success") {
       const summary = data.summary || [];
-      
       const pivotTableData = aggregateDataForPivot(summary);
       renderPivotTable(pivotTableData);
       renderAccordion(summary);
@@ -256,39 +320,44 @@ async function fetchData() {
   document.getElementById("lastUpdated").textContent = "마지막 업데이트: " + new Date().toLocaleTimeString();
 }
 
-function aggregateDataForPivot(summary) {
-    const aggregated = {};
-    const divisions = ['경영지원실', '생산', '직속(연구소, 구매팀, 안전환경, 글로벌TF)', 'INFRA사업부', 'SYSTEM사업부', '협력사'];
+function filterData() {
+  const startDate = document.getElementById('startDate').value;
+  const endDate = document.getElementById('endDate').value;
+  fetchData(startDate, endDate);
+}
 
-    divisions.forEach(div => {
-        aggregated[div] = {
-            total: 0, evacuated: 0, remaining: 0
-        };
-    });
+function aggregateDataForPivot(summary) {
+    const aggregated = {
+        'SYSTEM사업부': { total: 0, evacuated: 0, remaining: 0 },
+        'INFRA사업부': { total: 0, evacuated: 0, remaining: 0 },
+        '경영지원실': { total: 0, evacuated: 0, remaining: 0 },
+        '직속(연구소, 구매팀, 안전환경, 글로벌TF)': { total: 0, evacuated: 0, remaining: 0 },
+        '협력사': { total: 0, evacuated: 0, remaining: 0 },
+        '기타': { total: 0, evacuated: 0, remaining: 0 }
+    };
     
-    // 내방객 데이터는 별도로 집계
     const visitorData = {
-        total: 0, evacuated: 0, remaining: 0
+      total: 0, evacuated: 0, remaining: 0
     };
 
     summary.forEach(row => {
         const division = row.division;
-        const total = row.total || 0;
-        const evacuated = row.evacuated || 0;
-        const remaining = row.remaining || 0;
         
-        if (division === '기타') {
-            visitorData.total += total;
-            visitorData.evacuated += evacuated;
-            visitorData.remaining += remaining;
-        } else if (aggregated[division]) {
-            aggregated[division].total += total;
-            aggregated[division].evacuated += evacuated;
-            aggregated[division].remaining += remaining;
+        // 내방객 데이터는 별도로 집계
+        if (row.hasVisitor) {
+            visitorData.total += row.visitorTotal;
+            visitorData.evacuated += row.visitorEvacuated;
+            visitorData.remaining += row.visitorRemaining;
+        }
+
+        // 임직원, 협력사, 기타 데이터 집계
+        if (aggregated[division]) {
+            aggregated[division].total += row.total;
+            aggregated[division].evacuated += row.evacuated;
+            aggregated[division].remaining += row.remaining;
         }
     });
 
-    // 모든 데이터를 하나의 객체로 반환
     return { aggregated, visitorData };
 }
 
@@ -302,13 +371,12 @@ function renderPivotTable(data) {
     let grandTotalEvacuated = 0;
     let grandTotalRemaining = 0;
     
-    const orderedDivisions = ['경영지원실', '생산', '직속(연구소, 구매팀, 안전환경, 글로벌TF)', 'INFRA사업부', 'SYSTEM사업부', '협력사'];
+    const orderedDivisions = ['SYSTEM사업부', 'INFRA사업부', '경영지원실', '직속(연구소, 구매팀, 안전환경, 글로벌TF)', '협력사', '기타'];
     
     orderedDivisions.forEach(division => {
         const rowData = aggregated[division];
         const row = document.createElement("tr");
         
-        // 내방객 데이터는 첫 행에만 표시
         let visitorCells = '';
         if (division === orderedDivisions[0]) {
             visitorCells = `<td rowspan="${orderedDivisions.length}">${visitorData.total}</td><td rowspan="${orderedDivisions.length}">${visitorData.evacuated}</td><td rowspan="${orderedDivisions.length}">${visitorData.remaining}</td>`;
@@ -328,7 +396,6 @@ function renderPivotTable(data) {
         grandTotalRemaining += rowData.remaining;
     });
 
-    // 총계 업데이트
     document.getElementById("grandTotalTotal").textContent = grandTotalTotal;
     document.getElementById("grandTotalEvacuated").textContent = grandTotalEvacuated;
     document.getElementById("grandTotalRemaining").textContent = grandTotalRemaining;
@@ -372,9 +439,7 @@ function renderAccordion(summary = []) {
     header.addEventListener('click', () => {
       const allContents = document.querySelectorAll('.accordion-content');
       allContents.forEach(c => {
-        if (c !== content) {
-          c.classList.remove('active');
-        }
+        if (c !== content) { c.classList.remove('active'); }
       });
       content.classList.toggle('active');
     });
@@ -392,6 +457,11 @@ function showPopup(report) {
   const evacuatedInput = document.getElementById("popupEvacuated");
   const remainingInput = document.getElementById("popupRemaining");
   const notesTextarea = document.getElementById("popupNotes");
+  const hasVisitorCheckbox = document.getElementById("popupHasVisitor");
+  const visitorFieldsDiv = document.getElementById("visitorFields");
+  const visitorTotalInput = document.getElementById("popupVisitorTotal");
+  const visitorEvacuatedInput = document.getElementById("popupVisitorEvacuated");
+  const visitorRemainingInput = document.getElementById("popupVisitorRemaining");
   const saveBtn = document.getElementById("saveBtn");
 
   if (report) {
@@ -400,7 +470,15 @@ function showPopup(report) {
     totalInput.value = report.total || 0;
     evacuatedInput.value = report.evacuated || 0;
     remainingInput.value = report.remaining || 0;
-    notesTextarea.value = report.notes || '';
+    notesTextarea.value = report.note || '';
+
+    const hasVisitor = report.hasVisitor === true || report.hasVisitor === 'TRUE';
+    hasVisitorCheckbox.checked = hasVisitor;
+    visitorFieldsDiv.style.display = hasVisitor ? 'block' : 'none';
+    visitorTotalInput.value = report.visitorTotal || 0;
+    visitorEvacuatedInput.value = report.visitorEvacuated || 0;
+    visitorRemainingInput.value = report.visitorRemaining || 0;
+    
     saveBtn.textContent = '수정';
   } else {
     currentReportData = { division: '미보고', department: '미보고' };
@@ -409,9 +487,15 @@ function showPopup(report) {
     evacuatedInput.value = '';
     remainingInput.value = '';
     notesTextarea.value = '';
+    hasVisitorCheckbox.checked = false;
+    visitorFieldsDiv.style.display = 'none';
+    visitorTotalInput.value = '';
+    visitorEvacuatedInput.value = '';
+    visitorRemainingInput.value = '';
     saveBtn.textContent = '신규 보고';
   }
   popup.style.display = 'flex';
+  calculateAllRemaining();
 }
 
 function closePopup() {
@@ -428,6 +512,15 @@ async function saveReport() {
     return;
   }
   
+  const hasVisitor = document.getElementById("popupHasVisitor").checked;
+  const visitorTotal = hasVisitor ? parseInt(document.getElementById("popupVisitorTotal").value) || 0 : 0;
+  const visitorEvacuated = hasVisitor ? parseInt(document.getElementById("popupVisitorEvacuated").value) || 0 : 0;
+  const visitorRemaining = visitorTotal - visitorEvacuated;
+  if (visitorRemaining < 0) {
+    alert("내방객 미대피 인원은 음수일 수 없습니다.");
+    return;
+  }
+
   const dataToSave = {
     division: currentReportData.division,
     department: currentReportData.department,
@@ -435,6 +528,10 @@ async function saveReport() {
     evacuated: evacuated,
     remaining: remaining,
     notes: notes,
+    hasVisitor: hasVisitor,
+    visitorTotal: visitorTotal,
+    visitorEvacuated: visitorEvacuated,
+    visitorRemaining: visitorRemaining
   };
 
   try {
@@ -461,19 +558,34 @@ function syncData() {
   alert("대피 현황을 동기화했습니다.");
 }
 
-document.getElementById("popupTotal").addEventListener('input', calculateRemaining);
-document.getElementById("popupEvacuated").addEventListener('input', calculateRemaining);
-document.getElementById("saveBtn").addEventListener('click', saveReport);
-
-function calculateRemaining() {
+function calculateAllRemaining() {
   const total = parseInt(document.getElementById("popupTotal").value) || 0;
   const evacuated = parseInt(document.getElementById("popupEvacuated").value) || 0;
   const remaining = total - evacuated;
   document.getElementById("popupRemaining").value = remaining >= 0 ? remaining : '';
+
+  const visitorTotal = parseInt(document.getElementById("popupVisitorTotal").value) || 0;
+  const visitorEvacuated = parseInt(document.getElementById("popupVisitorEvacuated").value) || 0;
+  const visitorRemaining = visitorTotal - visitorEvacuated;
+  document.getElementById("popupVisitorRemaining").value = visitorRemaining >= 0 ? visitorRemaining : '';
 }
 
-fetchData();
-setInterval(fetchData, 30000);
+document.getElementById("popupTotal").addEventListener('input', calculateAllRemaining);
+document.getElementById("popupEvacuated").addEventListener('input', calculateAllRemaining);
+document.getElementById("popupHasVisitor").addEventListener('change', () => {
+    const visitorFieldsDiv = document.getElementById("visitorFields");
+    visitorFieldsDiv.style.display = document.getElementById("popupHasVisitor").checked ? 'block' : 'none';
+    calculateAllRemaining();
+});
+document.getElementById("popupVisitorTotal").addEventListener('input', calculateAllRemaining);
+document.getElementById("popupVisitorEvacuated").addEventListener('input', calculateAllRemaining);
+document.getElementById("saveBtn").addEventListener('click', saveReport);
+
+
+document.addEventListener('DOMContentLoaded', () => {
+  fetchData();
+  setInterval(fetchData, 30000);
+});
 </script>
 </body>
 </html>
