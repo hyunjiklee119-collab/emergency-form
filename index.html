@@ -18,16 +18,15 @@
         .note-tip { font-size: 0.85rem; color: #777; margin-top: 5px; text-align: right; }
 
         /* 내방객 포함 여부 체크박스 그룹 (수정됨) */
+        .checkbox-group { 
+            display: flex; 
+            align-items: center;
+        }
+
         .checkbox-group label { 
-            display: inline; 
-            align-items: center; 
-            flex-direction: row-reverse;
-            gap: 8px; 
-            margin: 0;
             font-weight: bold;
             font-size: 0.95rem;
             color: #007bff;
-            white-space: nowrap;
             cursor: pointer;
         }
 
@@ -103,10 +102,8 @@
         <div class="note-tip">대피 장소에 도착한 인원 수</div>
 
         <div class="checkbox-group">
-            <label for="hasVisitor">
-                내방객 · 협력업체 포함 여부
-                <input type="checkbox" id="hasVisitor">
-            </label>
+            <input type="checkbox" id="hasVisitor" style="margin-right: 5px;">
+            <label for="hasVisitor">내방객 · 협력업체 포함 여부</label>
         </div>
 
         <label for="visitorTotal" id="visitorTotalLabel" style="display:none;">내방객 · 협력업체 총 인원</label>
