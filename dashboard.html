@@ -12,7 +12,7 @@
     padding: 10px;
     color: #333;
   }
-  .summary-table {
+  .summary-table, .visitor-summary-table {
     width: 100%;
     border-collapse: collapse;
     margin-bottom: 12px;
@@ -21,22 +21,22 @@
     box-shadow: 0 2px 6px rgba(0,0,0,0.08);
     overflow: hidden;
   }
-  .summary-table th, .summary-table td {
+  .summary-table th, .summary-table td, .visitor-summary-table th, .visitor-summary-table td {
     padding: 8px 3px;
     text-align: center;
     border: 1px solid #eee;
   }
-  .summary-table th {
+  .summary-table th, .visitor-summary-table th {
     background: #e9ecef;
     font-size: 0.75rem;
     font-weight: bold;
     color: #495057;
   }
-  .summary-table td {
+  .summary-table td, .visitor-summary-table td {
     font-size: 0.85rem;
     font-weight: bold;
   }
-  .summary-table .total-row {
+  .summary-table .total-row, .visitor-summary-table .total-row {
     font-weight: bold;
     background: #f1f1f1;
   }
@@ -99,8 +99,31 @@
   }
   .ok { color: #28a745; }
   .warn { color: #dc3545; }
-  .pending { color: #ffc107; }
-
+  .note { color: #ffc107; }
+  .pending { color: #888; }
+  .status-legend {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-top: 10px;
+    font-size: 0.8rem;
+    color: #555;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    margin: 0 8px;
+  }
+  .legend-icon {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    margin-right: 4px;
+  }
+  .ok-bg { background-color: #28a745; }
+  .warn-bg { background-color: #dc3545; }
+  .note-bg { background-color: #ffc107; }
+  .pending-bg { background-color: #888; }
   .footer {
     text-align: center;
     margin-top: 12px;
@@ -114,6 +137,10 @@
     color: #fff;
     box-shadow: 0 2px 4px rgba(0,0,0,0.15);
     cursor: pointer;
+  }
+  button:disabled {
+    background: #aaa;
+    cursor: not-allowed;
   }
   button:active { background: #0056b3; }
   .footer-links {
@@ -196,6 +223,25 @@
     margin-bottom: 15px;
     font-size: 0.85rem;
   }
+  #sync-status {
+    font-size: 0.8rem;
+    color: #007bff;
+    margin-top: 5px;
+    display: none;
+  }
+  #remaining-info, #visitor-remaining-info {
+    font-size: 0.8rem;
+    color: #777;
+    margin-top: -10px;
+    margin-bottom: 10px;
+    font-weight: bold;
+    padding-left: 2px;
+  }
+  .negative-warning {
+    color: #dc3545;
+    font-weight: bold;
+  }
+  #reportForm { display: none; }
 </style>
 </head>
 <body>
@@ -204,33 +250,46 @@
   <p id="currentDate">현재: <span id="displayDate"></span></p>
 </div>
 
-<table class="summary-table">
+<table class="visitor-summary-table">
   <thead>
     <tr>
-      <th rowspan="2">division</th>
-      <th colspan="3">임직원 & 협력사</th>
       <th colspan="3">내방객</th>
     </tr>
     <tr>
       <th>total</th>
       <th>evacuated</th>
       <th>remaining</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td id="grandTotalVisitorTotal">-</td>
+      <td id="grandTotalVisitorEvacuated">-</td>
+      <td id="grandTotalVisitorRemaining">-</td>
+    </tr>
+  </tbody>
+</table>
+
+<table class="summary-table">
+  <thead>
+    <tr>
+      <th rowspan="2">division</th>
+      <th colspan="3">임직원 & 협력사</th>
+    </tr>
+    <tr>
       <th>total</th>
       <th>evacuated</th>
       <th>remaining</th>
     </tr>
   </thead>
   <tbody id="pivotTableBody">
-    </tbody>
+  </tbody>
   <tfoot>
     <tr class="total-row">
       <td>총계</td>
       <td id="grandTotalTotal">-</td>
       <td id="grandTotalEvacuated">-</td>
       <td id="grandTotalRemaining">-</td>
-      <td id="grandTotalVisitorTotal">-</td>
-      <td id="grandTotalVisitorEvacuated">-</td>
-      <td id="grandTotalVisitorRemaining">-</td>
     </tr>
   </tfoot>
 </table>
@@ -238,8 +297,16 @@
 <div class="accordion-container" id="accordionContainer">
 </div>
 
+<div class="status-legend">
+  <div class="legend-item"><span class="legend-icon ok-bg"></span> 양호</div>
+  <div class="legend-item"><span class="legend-icon note-bg"></span> 확인 필요</div>
+  <div class="legend-item"><span class="legend-icon warn-bg"></span> 미대피 발생</div>
+  <div class="legend-item"><span class="legend-icon pending-bg"></span> 미보고</div>
+</div>
+
 <div class="footer">
-  <button onclick="syncData()">🔄 동기화</button>
+  <button id="syncBtn">🔄 동기화</button>
+  <p id="sync-status">데이터를 불러오는 중...</p>
   <p id="lastUpdated">마지막 업데이트: -</p>
   <div class="footer-links">
     <a href="YOUR_GOOGLE_SHEET_URL" target="_blank">원본 구글 시트 확인</a>
@@ -249,93 +316,121 @@
 <div id="reportPopup" class="popup">
   <div class="popup-content">
     <h3 id="popupTitle"></h3>
-    <div id="recentReportSummary" class="recent-report-summary" style="display:none;"></div>
-
-    <div class="input-group">
-      <label for="popupTotal">총 인원</label>
-      <input type="number" id="popupTotal" placeholder="인원 수 입력">
-    </div>
-    <div class="input-group">
-      <label for="popupEvacuated">대피완료</label>
-      <input type="number" id="popupEvacuated" placeholder="인원 수 입력">
-    </div>
-    <div class="input-group">
-      <label for="popupRemaining">미대피</label>
-      <input type="number" id="popupRemaining" disabled>
+    <div id="reportSummaryContainer">
+      <div id="reportSummaryContent" class="recent-report-summary" style="display:none;"></div>
+      <div id="noReportSummary" style="display:none; text-align:center; color: #777;">아직 보고된 내용이 없습니다.</div>
+      <div style="text-align:center;">
+        <button id="newReportBtn" style="margin-top: 10px;">보고하기</button>
+      </div>
     </div>
     
-    <div class="input-group checkbox-group">
-      <label for="popupHasVisitor">내방객 포함</label>
-      <input type="checkbox" id="popupHasVisitor">
-    </div>
-    <div id="visitorFields" style="display:none;">
+    <div id="reportForm">
       <div class="input-group">
-        <label for="popupVisitorTotal">내방객 총원</label>
-        <input type="number" id="popupVisitorTotal" min="0" placeholder="인원 수 입력">
+        <label for="popupTotal">총 인원</label>
+        <input type="number" id="popupTotal" placeholder="인원 수 입력">
       </div>
       <div class="input-group">
-        <label for="popupVisitorEvacuated">내방객 대피완료</label>
-        <input type="number" id="popupVisitorEvacuated" min="0" placeholder="인원 수 입력">
+        <label for="popupEvacuated">대피완료</label>
+        <input type="number" id="popupEvacuated" placeholder="인원 수 입력">
       </div>
-      <div class="input-group">
-        <label for="popupVisitorRemaining">내방객 미대피</label>
-        <input type="number" id="popupVisitorRemaining" disabled>
+      <div id="remaining-info"></div>
+      
+      <div class="input-group checkbox-group">
+        <label for="popupHasVisitor">내방객 포함</label>
+        <input type="checkbox" id="popupHasVisitor">
       </div>
-    </div>
+      <div id="visitorFields" style="display:none;">
+        <div class="input-group">
+          <label for="popupVisitorTotal">내방객 총원</label>
+          <input type="number" id="popupVisitorTotal" min="0" placeholder="인원 수 입력">
+        </div>
+        <div class="input-group">
+          <label for="popupVisitorEvacuated">내방객 대피완료</label>
+          <input type="number" id="popupVisitorEvacuated" min="0" placeholder="인원 수 입력">
+        </div>
+        <div id="visitor-remaining-info"></div>
+      </div>
 
-    <div class="input-group">
-      <label for="popupNotes">특이사항</label>
-      <textarea id="popupNotes" placeholder="특이사항을 입력하세요"></textarea>
+      <div class="input-group">
+        <label for="popupNotes">특이사항</label>
+        <textarea id="popupNotes" placeholder="특이사항을 입력하세요"></textarea>
+      </div>
+      <button id="saveBtn" class="popup-btn">저장</button>
     </div>
-    <button id="saveBtn" class="popup-btn">추가 보고</button>
-    <button class="close-btn popup-btn" onclick="closePopup()">닫기</button>
+    <div style="text-align:right;">
+      <button class="close-btn popup-btn" onclick="closePopup()">닫기</button>
+    </div>
   </div>
 </div>
 
 <script>
-const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbzbmJ7hH_Eh67CMFgc3cMihl0UBlOmSDzcwcuHoVGicvOAIvo90_mIqZ-EbpWGhlc-A/exec";
-const GOOGLE_SHEET_URL = "https://docs.google.com/spreadsheets/d/1fLIQijY7EtywKy-4ng3tvMm6ZstN7Ua2RKqH7RMxp1Q/edit?usp=sharing";
+const WEBAPP_URL = "YOUR_WEBAPP_URL";
+const GOOGLE_SHEET_URL = "YOUR_GOOGLE_SHEET_URL";
 let currentReportData = null;
+let latestReports = {};
 
 const departments = {
-    'SYSTEM사업부': ['사업부 공통', '영업팀', 'CS팀', '제조팀', '생산기술팀', '품질G'],
-    'INFRA사업부': ['사업부 공통', 'ENC사업팀', 'EPC사업팀'],
-    '경영지원실': ['사업부 공통', '재무팀', '인사팀', '정보전략팀', '기획G', '준법경영G'],
-    '직속(연구소, 구매팀, 안전환경, 글로벌TF)': ['사업부 공통', '연구소', '구매팀', '안전환경팀', '글로벌TF'],
-    '협력사': ['협력사'],
-    '기타': ['기타']
+  'SYSTEM사업부': ['사업부 공통', '영업팀', 'CS팀', '제조팀', '생산기술팀', '품질G'],
+  'INFRA사업부': ['사업부 공통', 'ENC사업팀', 'EPC사업팀'],
+  '경영지원실': ['사업부 공통', '재무팀', '인사팀', '정보전략팀', '기획G', '준법경영G'],
+  '직속(연구소, 구매팀, 안전환경, 글로벌TF)': ['사업부 공통', '연구소', '구매팀', '안전환경팀', '글로벌TF'],
+  '협력사': ['협력사'],
+  '기타': ['기타']
 };
 
 document.getElementById('displayDate').textContent = new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' });
 document.querySelector('.footer-links a').href = GOOGLE_SHEET_URL;
 
 async function fetchData() {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const tomorrow = new Date(today);
-  tomorrow.setDate(tomorrow.getDate() + 1);
+  const syncBtn = document.getElementById("syncBtn");
+  const syncStatus = document.getElementById("sync-status");
 
-  const startDate = today.toISOString().split('T')[0];
-  const endDate = tomorrow.toISOString().split('T')[0];
-  
+  syncBtn.disabled = true;
+  syncStatus.style.display = 'block';
+
   try {
-    let url = `${WEBAPP_URL}?action=getSummary`; // action은 doGet에서 필터링 용도가 아님
+    const url = `${WEBAPP_URL}?action=getSummary`;
     const res = await fetch(url);
     const data = await res.json();
     if (data.result === "success") {
       const summary = data.summary || [];
-      const pivotTableData = aggregateDataForPivot(summary);
-      renderPivotTable(pivotTableData);
-      renderAccordion(summary);
+      latestReports = getLatestReports(summary);
+      const pivotTableData = aggregateDataForPivot(latestReports);
+      renderTables(pivotTableData);
+      renderAccordion(latestReports);
+    } else {
+      console.error("API response failed:", data.message);
+      alert("데이터를 불러오는 중 오류가 발생했습니다: " + data.message);
     }
   } catch (error) {
     console.error("Error fetching data:", error);
+    alert("데이터를 불러오는 중 네트워크 오류가 발생했습니다.");
+    renderTables({ aggregated: {}, visitorData: { total: '-', evacuated: '-', remaining: '-' } });
     renderAccordion([]);
+  } finally {
+    syncStatus.style.display = 'none';
+    syncBtn.disabled = false;
+    document.getElementById("lastUpdated").textContent = "마지막 업데이트: " + new Date().toLocaleTimeString('ko-KR');
   }
-  document.getElementById("lastUpdated").textContent = "마지막 업데이트: " + new Date().toLocaleTimeString('ko-KR');
 }
 
-function aggregateDataForPivot(summary) {
+function getLatestReports(summary) {
+  const latest = {};
+  const today = new Date().toLocaleDateString();
+
+  summary.forEach(row => {
+    const rowDate = new Date(row.timestamp).toLocaleDateString();
+    if (today !== rowDate) return;
+
+    const key = `${row.division}-${row.department}`;
+    if (!latest[key] || new Date(row.timestamp) > new Date(latest[key].timestamp)) {
+      latest[key] = row;
+    }
+  });
+  return latest;
+}
+
+function aggregateDataForPivot(latestReports) {
   const aggregated = {
     'SYSTEM사업부': { total: 0, evacuated: 0, remaining: 0 },
     'INFRA사업부': { total: 0, evacuated: 0, remaining: 0 },
@@ -345,42 +440,27 @@ function aggregateDataForPivot(summary) {
     '기타': { total: 0, evacuated: 0, remaining: 0 }
   };
   
-  const visitorData = {
-    total: 0, evacuated: 0, remaining: 0
-  };
-
-  const latestReports = {};
-  summary.forEach(row => {
-    const today = new Date().toLocaleDateString();
-    const rowDate = new Date(row.timestamp).toLocaleDateString();
-    
-    if (today !== rowDate) return;
-
-    const key = `${row.division}-${row.department}`;
-    if (!latestReports[key] || new Date(row.timestamp) > new Date(latestReports[key].timestamp)) {
-      latestReports[key] = row;
-    }
-  });
+  const visitorData = { total: 0, evacuated: 0, remaining: 0 };
 
   Object.values(latestReports).forEach(row => {
     const division = row.division;
     if (row.hasVisitor) {
-        visitorData.total += row.visitorTotal;
-        visitorData.evacuated += row.visitorEvacuated;
-        visitorData.remaining += row.visitorRemaining;
+      visitorData.total += row.visitorTotal;
+      visitorData.evacuated += row.visitorEvacuated;
+      visitorData.remaining += row.visitorRemaining;
     }
 
     if (aggregated[division]) {
-        aggregated[division].total += row.total;
-        aggregated[division].evacuated += row.evacuated;
-        aggregated[division].remaining += row.remaining;
+      aggregated[division].total += row.total;
+      aggregated[division].evacuated += row.evacuated;
+      aggregated[division].remaining += row.remaining;
     }
   });
 
   return { aggregated, visitorData };
 }
 
-function renderPivotTable(data) {
+function renderTables(data) {
   const tbody = document.getElementById("pivotTableBody");
   tbody.innerHTML = '';
   
@@ -393,20 +473,13 @@ function renderPivotTable(data) {
   const orderedDivisions = ['SYSTEM사업부', 'INFRA사업부', '경영지원실', '직속(연구소, 구매팀, 안전환경, 글로벌TF)', '협력사', '기타'];
   
   orderedDivisions.forEach(division => {
-    const rowData = aggregated[division];
+    const rowData = aggregated[division] || { total: 0, evacuated: 0, remaining: 0 };
     const row = document.createElement("tr");
-    
-    let visitorCells = '';
-    if (division === orderedDivisions[0]) {
-      visitorCells = `<td rowspan="${orderedDivisions.length}">${visitorData.total}</td><td rowspan="${orderedDivisions.length}">${visitorData.evacuated}</td><td rowspan="${orderedDivisions.length}">${visitorData.remaining}</td>`;
-    }
-
     row.innerHTML = `
       <td>${division}</td>
       <td>${rowData.total}</td>
       <td>${rowData.evacuated}</td>
       <td>${rowData.remaining}</td>
-      ${visitorCells}
     `;
     tbody.appendChild(row);
 
@@ -418,27 +491,15 @@ function renderPivotTable(data) {
   document.getElementById("grandTotalTotal").textContent = grandTotalTotal;
   document.getElementById("grandTotalEvacuated").textContent = grandTotalEvacuated;
   document.getElementById("grandTotalRemaining").textContent = grandTotalRemaining;
+
   document.getElementById("grandTotalVisitorTotal").textContent = visitorData.total;
   document.getElementById("grandTotalVisitorEvacuated").textContent = visitorData.evacuated;
   document.getElementById("grandTotalVisitorRemaining").textContent = visitorData.remaining;
 }
 
-function renderAccordion(summary = []) {
+function renderAccordion(latestReports = {}) {
   const container = document.getElementById("accordionContainer");
   container.innerHTML = "";
-
-  const latestReports = {};
-  summary.forEach(row => {
-    const today = new Date().toLocaleDateString();
-    const rowDate = new Date(row.timestamp).toLocaleDateString();
-    
-    if (today !== rowDate) return;
-    
-    const key = `${row.division}-${row.department}`;
-    if (!latestReports[key] || new Date(row.timestamp) > new Date(latestReports[key].timestamp)) {
-      latestReports[key] = row;
-    }
-  });
 
   for (const division in departments) {
     const item = document.createElement("div");
@@ -453,19 +514,22 @@ function renderAccordion(summary = []) {
     subDepartments.forEach(deptName => {
       const report = latestReports[`${division}-${deptName}`];
       
-      let statusIcon = '-';
+      let statusIcon = '⚫';
       let statusClass = 'pending';
 
       if (report) {
         const remainingAll = report.remaining + report.visitorRemaining;
         const hasNote = report.note && report.note.trim() !== '';
 
-        if (remainingAll === 0 && !hasNote) {
-          statusIcon = 'O'; 
-          statusClass = 'ok';
-        } else {
-          statusIcon = 'V'; 
+        if (hasNote) {
+          statusIcon = '🟡';
+          statusClass = 'note';
+        } else if (remainingAll > 0) {
+          statusIcon = '🔴';
           statusClass = 'warn';
+        } else {
+          statusIcon = '🟢'; 
+          statusClass = 'ok';
         }
       }
       
@@ -496,36 +560,19 @@ function renderAccordion(summary = []) {
 function showPopup(division, department, report) {
   const popup = document.getElementById("reportPopup");
   const title = document.getElementById("popupTitle");
-  const totalInput = document.getElementById("popupTotal");
-  const evacuatedInput = document.getElementById("popupEvacuated");
-  const remainingInput = document.getElementById("popupRemaining");
-  const notesTextarea = document.getElementById("popupNotes");
-  const hasVisitorCheckbox = document.getElementById("popupHasVisitor");
-  const visitorFieldsDiv = document.getElementById("visitorFields");
-  const visitorTotalInput = document.getElementById("popupVisitorTotal");
-  const visitorEvacuatedInput = document.getElementById("popupVisitorEvacuated");
-  const visitorRemainingInput = document.getElementById("popupVisitorRemaining");
-  const recentReportSummary = document.getElementById("recentReportSummary");
+  const reportSummaryContainer = document.getElementById("reportSummaryContainer");
+  const reportSummaryContent = document.getElementById("reportSummaryContent");
+  const noReportSummary = document.getElementById("noReportSummary");
+  const reportForm = document.getElementById("reportForm");
 
   currentReportData = { division, department };
-
-  title.textContent = `${division} > ${department} 추가 보고`;
+  title.textContent = `${division} > ${department} 보고`;
   
-  // 팝업 입력 필드 초기화
-  totalInput.value = '';
-  evacuatedInput.value = '';
-  remainingInput.value = '';
-  notesTextarea.value = '';
-  hasVisitorCheckbox.checked = false;
-  visitorFieldsDiv.style.display = 'none';
-  visitorTotalInput.value = '';
-  visitorEvacuatedInput.value = '';
-  visitorRemainingInput.value = '';
+  reportForm.style.display = 'none';
 
-  // 최근 보고 내용이 있다면 요약해서 보여주기
   if (report) {
     const reportTime = new Date(report.timestamp).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
-    let summaryText = `최근 보고 (${reportTime}):<br>
+    let summaryText = `**최근 보고 (${reportTime})**<br>
       - 임직원/협력사: 총 ${report.total}명 중 ${report.evacuated}명 대피 (${report.remaining}명 미대피)`;
     if (report.hasVisitor) {
       summaryText += `<br>- 내방객: 총 ${report.visitorTotal}명 중 ${report.visitorEvacuated}명 대피 (${report.visitorRemaining}명 미대피)`;
@@ -533,13 +580,57 @@ function showPopup(division, department, report) {
     if (report.note) {
       summaryText += `<br>- 특이사항: ${report.note}`;
     }
-    recentReportSummary.innerHTML = summaryText;
-    recentReportSummary.style.display = 'block';
+    reportSummaryContent.innerHTML = summaryText;
+    reportSummaryContent.style.display = 'block';
+    noReportSummary.style.display = 'none';
+    document.getElementById("newReportBtn").textContent = "추가 보고";
+    document.getElementById("newReportBtn").onclick = () => openReportForm(report);
   } else {
-    recentReportSummary.style.display = 'none';
+    reportSummaryContent.style.display = 'none';
+    noReportSummary.style.display = 'block';
+    document.getElementById("newReportBtn").textContent = "보고하기";
+    document.getElementById("newReportBtn").onclick = () => openReportForm(null);
   }
-
+  
   popup.style.display = 'flex';
+}
+
+function openReportForm(report) {
+  const reportForm = document.getElementById("reportForm");
+  const totalInput = document.getElementById("popupTotal");
+  const evacuatedInput = document.getElementById("popupEvacuated");
+  const notesTextarea = document.getElementById("popupNotes");
+  const hasVisitorCheckbox = document.getElementById("popupHasVisitor");
+  const visitorFieldsDiv = document.getElementById("visitorFields");
+  const visitorTotalInput = document.getElementById("popupVisitorTotal");
+  const visitorEvacuatedInput = document.getElementById("popupVisitorEvacuated");
+  
+  reportForm.style.display = 'block';
+  
+  totalInput.value = '';
+  evacuatedInput.value = '';
+  notesTextarea.value = '';
+  hasVisitorCheckbox.checked = false;
+  visitorFieldsDiv.style.display = 'none';
+  visitorTotalInput.value = '';
+  visitorEvacuatedInput.value = '';
+
+  if (report) {
+    totalInput.value = report.total;
+    totalInput.disabled = true;
+    evacuatedInput.value = report.remaining;
+    
+    hasVisitorCheckbox.checked = report.hasVisitor;
+    visitorFieldsDiv.style.display = report.hasVisitor ? 'block' : 'none';
+    visitorTotalInput.value = report.visitorTotal;
+    visitorTotalInput.disabled = true;
+    visitorEvacuatedInput.value = report.visitorRemaining;
+
+  } else {
+    totalInput.disabled = false;
+    visitorTotalInput.disabled = false;
+  }
+  
   calculateAllRemaining();
 }
 
@@ -547,37 +638,74 @@ function closePopup() {
   document.getElementById("reportPopup").style.display = 'none';
 }
 
-async function saveReport() {
+function calculateAllRemaining() {
   const total = parseInt(document.getElementById("popupTotal").value) || 0;
   const evacuated = parseInt(document.getElementById("popupEvacuated").value) || 0;
-  const notes = document.getElementById("popupNotes").value;
   const remaining = total - evacuated;
+  const saveBtn = document.getElementById("saveBtn");
+  const remainingInfo = document.getElementById("remaining-info");
+  let hasError = false;
+
   if (remaining < 0) {
-    alert("미대피 인원은 음수일 수 없습니다.");
-    return;
+    remainingInfo.innerHTML = `미대피: <span class="negative-warning">⚠️ 음수일 수 없습니다</span>`;
+    hasError = true;
+  } else {
+    remainingInfo.innerHTML = `미대피: ${remaining}명`;
   }
-  
+
   const hasVisitor = document.getElementById("popupHasVisitor").checked;
   const visitorTotal = hasVisitor ? parseInt(document.getElementById("popupVisitorTotal").value) || 0 : 0;
   const visitorEvacuated = hasVisitor ? parseInt(document.getElementById("popupVisitorEvacuated").value) || 0 : 0;
   const visitorRemaining = visitorTotal - visitorEvacuated;
-  if (visitorRemaining < 0) {
-    alert("내방객 미대피 인원은 음수일 수 없습니다.");
-    return;
+  const visitorRemainingInfo = document.getElementById("visitor-remaining-info");
+
+  if (hasVisitor) {
+    if (visitorRemaining < 0) {
+      visitorRemainingInfo.innerHTML = `내방객 미대피: <span class="negative-warning">⚠️ 음수일 수 없습니다</span>`;
+      hasError = true;
+    } else {
+      visitorRemainingInfo.innerHTML = `내방객 미대피: ${visitorRemaining}명`;
+    }
+  } else {
+    visitorRemainingInfo.innerHTML = '';
   }
 
+  saveBtn.disabled = hasError;
+}
+
+async function saveReport() {
+  const existingReport = latestReports[`${currentReportData.division}-${currentReportData.department}`];
+
+  let total, evacuated, visitorTotal, visitorEvacuated;
+
+  if (existingReport) {
+    const currentEvacuated = parseInt(document.getElementById("popupEvacuated").value) || 0;
+    const currentVisitorEvacuated = parseInt(document.getElementById("popupVisitorEvacuated").value) || 0;
+    
+    total = existingReport.total;
+    evacuated = existingReport.evacuated + currentEvacuated;
+    
+    visitorTotal = existingReport.visitorTotal;
+    visitorEvacuated = existingReport.visitorEvacuated + currentVisitorEvacuated;
+  } else {
+    total = parseInt(document.getElementById("popupTotal").value) || 0;
+    evacuated = parseInt(document.getElementById("popupEvacuated").value) || 0;
+    visitorTotal = parseInt(document.getElementById("popupVisitorTotal").value) || 0;
+    visitorEvacuated = parseInt(document.getElementById("popupVisitorEvacuated").value) || 0;
+  }
+  
   const dataToSave = {
     action: 'addReport',
     division: currentReportData.division,
     department: currentReportData.department,
     total: total,
     evacuated: evacuated,
-    remaining: remaining,
-    note: notes,
-    hasVisitor: hasVisitor,
+    remaining: total - evacuated,
+    note: document.getElementById("popupNotes").value,
+    hasVisitor: document.getElementById("popupHasVisitor").checked,
     visitorTotal: visitorTotal,
     visitorEvacuated: visitorEvacuated,
-    visitorRemaining: visitorRemaining
+    visitorRemaining: visitorTotal - visitorEvacuated
   };
 
   try {
@@ -587,7 +715,7 @@ async function saveReport() {
     });
     const result = await res.json();
     if (result.result === "success") {
-      alert("새 보고가 성공적으로 추가되었습니다.");
+      alert("보고가 성공적으로 저장되었습니다.");
       closePopup();
       fetchData();
     } else {
@@ -599,23 +727,12 @@ async function saveReport() {
   }
 }
 
-function syncData() {
-  fetchData();
-  alert("대피 현황을 동기화했습니다.");
-}
-
-function calculateAllRemaining() {
-  const total = parseInt(document.getElementById("popupTotal").value) || 0;
-  const evacuated = parseInt(document.getElementById("popupEvacuated").value) || 0;
-  const remaining = total - evacuated;
-  document.getElementById("popupRemaining").value = remaining >= 0 ? remaining : '';
-
-  const visitorTotal = parseInt(document.getElementById("popupVisitorTotal").value) || 0;
-  const visitorEvacuated = parseInt(document.getElementById("popupVisitorEvacuated").value) || 0;
-  const visitorRemaining = visitorTotal - visitorEvacuated;
-  document.getElementById("popupVisitorRemaining").value = visitorRemaining >= 0 ? visitorRemaining : '';
-}
-
+document.getElementById("syncBtn").addEventListener('click', fetchData);
+document.getElementById("newReportBtn").addEventListener('click', () => {
+  const latestReportForDept = latestReports[`${currentReportData.division}-${currentReportData.department}`];
+  openReportForm(latestReportForDept);
+});
+document.getElementById("saveBtn").addEventListener('click', saveReport);
 document.getElementById("popupTotal").addEventListener('input', calculateAllRemaining);
 document.getElementById("popupEvacuated").addEventListener('input', calculateAllRemaining);
 document.getElementById("popupHasVisitor").addEventListener('change', () => {
@@ -625,7 +742,6 @@ document.getElementById("popupHasVisitor").addEventListener('change', () => {
 });
 document.getElementById("popupVisitorTotal").addEventListener('input', calculateAllRemaining);
 document.getElementById("popupVisitorEvacuated").addEventListener('input', calculateAllRemaining);
-document.getElementById("saveBtn").addEventListener('click', saveReport);
 
 
 document.addEventListener('DOMContentLoaded', () => {
