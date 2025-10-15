@@ -269,7 +269,7 @@
 <table class="visitor-summary-table">
   <thead>
     <tr>
-      <th colspan="3">내방객</th>
+      <th colspan="3">내방객 · 협력업체</th>
     </tr>
     <tr>
       <th>총원</th>
@@ -290,7 +290,7 @@
   <thead>
     <tr>
       <th rowspan="2">구분</th>
-      <th colspan="3">임직원 & 협력사</th>
+      <th colspan="3">임직원</th>
     </tr>
     <tr>
       <th>총원</th>
@@ -351,16 +351,16 @@
       <div id="remaining-info"></div>
       
       <div class="input-group checkbox-group">
-        <label for="popupHasVisitor">내방객 포함</label>
+        <label for="popupHasVisitor">내방객 · 협력업체 포함</label>
         <input type="checkbox" id="popupHasVisitor">
       </div>
       <div id="visitorFields" style="display:none;">
         <div class="input-group">
-          <label for="popupVisitorTotal">내방객 총원</label>
+          <label for="popupVisitorTotal">내방객 · 협력업체 총원</label>
           <input type="number" id="popupVisitorTotal" min="0" placeholder="인원 수 입력">
         </div>
         <div class="input-group">
-          <label for="popupVisitorEvacuated">내방객 대피완료</label>
+          <label for="popupVisitorEvacuated">내방객 · 협력업체 대피완료</label>
           <input type="number" id="popupVisitorEvacuated" min="0" placeholder="인원 수 입력">
         </div>
         <div id="visitor-remaining-info"></div>
@@ -383,15 +383,14 @@ const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbyi307t8us1etL-I0P82
 const GOOGLE_SHEET_URL = "https://docs.google.com/spreadsheets/d/1fLIQijY7EtywKy-4ng3tvMm6ZstN7Ua2RKqH7RMxp1Q/edit?gid=0#gid=0";
 let currentReportData = null;
 let cumulativeReports = {};
-let allReports = []; // 모든 보고서 기록을 저장할 전역 변수
+let allReports = []; // 모든 보고서 기록을 저장할 전역 변
 
+// 변경된 부분: '협력사'와 '기타' 항목 삭제
 const departments = {
   'SYSTEM사업부': ['사업부 공통', '영업팀', 'CS팀', '제조팀', '생산기술팀', '품질G'],
   'INFRA사업부': ['사업부 공통', 'ENC사업팀', 'EPC사업팀'],
   '경영지원실': ['사업부 공통', '재무팀', '인사팀', '정보전략팀', '기획G', '준법경영G'],
   '직속(연구소, 구매팀, 안전환경, 글로벌TF)': ['사업부 공통', '연구소', '구매팀', '안전환경팀', '글로벌TF'],
-  '협력사': ['협력사'],
-  '기타': ['기타']
 };
 
 document.getElementById('displayDate').textContent = new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' });
@@ -440,7 +439,8 @@ function renderTables(summaryData) {
   let grandTotalVisitorEvacuated = 0;
   let grandTotalVisitorRemaining = 0;
 
-  const orderedDivisions = ['SYSTEM사업부', 'INFRA사업부', '경영지원실', '직속(연구소, 구매팀, 안전환경, 글로벌TF)', '협력사', '기타'];
+  // 변경된 부분: '협력사'와 '기타' 항목 삭제
+  const orderedDivisions = ['SYSTEM사업부', 'INFRA사업부', '경영지원실', '직속(연구소, 구매팀, 안전환경, 글로벌TF)'];
   
   const pivotData = {};
   orderedDivisions.forEach(div => {
@@ -490,6 +490,7 @@ function renderAccordion(summaryData) {
   
   const departmentMap = new Map(summaryData.map(item => [`${item.division}-${item.department}`, item]));
 
+  // 변경된 부분: '협력사'와 '기타' 항목 삭제
   for (const division in departments) {
     const item = document.createElement("div");
     item.className = "accordion-item";
@@ -596,11 +597,11 @@ function renderReportLog(division, department) {
     
     let visitorInfo = '';
     if (log.hasVisitor) {
-      visitorInfo = `<br>- 내방객: 총 ${log.visitorTotal}명, 대피완료 ${log.visitorEvacuated}명, 미대피 ${log.visitorRemaining}명`;
+      visitorInfo = `<br>- 내방객 · 협력업체: 총 ${log.visitorTotal}명, 대피완료 ${log.visitorEvacuated}명, 미대피 ${log.visitorRemaining}명`;
     }
     
     logItem.innerHTML = `
-      <strong>[${reportTime}]</strong> 임직원/협력사: 총 ${log.total}명, 대피완료 ${log.evacuated}명, 미대피 ${log.remaining}명
+      <strong>[${reportTime}]</strong> 임직원: 총 ${log.total}명, 대피완료 ${log.evacuated}명, 미대피 ${log.remaining}명
       ${visitorInfo}
       ${log.note ? `<br>- 특이사항: ${log.note}` : ''}
     `;
@@ -635,10 +636,10 @@ function calculateAllRemaining() {
 
   if (hasVisitor) {
     if (visitorRemaining < 0) {
-      visitorRemainingInfo.innerHTML = `내방객 미대피: <span class="negative-warning">⚠️ 음수일 수 없습니다</span>`;
+      visitorRemainingInfo.innerHTML = `내방객 · 협력업체 미대피: <span class="negative-warning">⚠️ 음수일 수 없습니다</span>`;
       hasError = true;
     } else {
-      visitorRemainingInfo.innerHTML = `내방객 미대피: ${visitorRemaining}명`;
+      visitorRemainingInfo.innerHTML = `내방객 · 협력업체 미대피: ${visitorRemaining}명`;
     }
   } else {
     visitorRemainingInfo.innerHTML = '';
