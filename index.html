@@ -18,16 +18,16 @@
         .note-tip { font-size: 0.85rem; color: #777; margin-top: 5px; text-align: right; }
 
         /* 내방객 포함 여부 체크박스 그룹 (수정됨) */
-        .checkbox-group { 
-            display: flex; 
-            align-items: center; 
+        .checkbox-group { 
+            display: flex; 
+            align-items: center; 
             justify-content: flex-start;
-            gap: 8px; 
+            gap: 8px; 
             margin-bottom: 5px;
             flex-wrap: nowrap;
         }
         .checkbox-group label {
-            display: inline; 
+            display: inline; 
             margin: 0;
             font-weight: bold;
             font-size: 0.95rem;
@@ -90,14 +90,11 @@
             <option value="INFRA사업부">INFRA사업부</option>
             <option value="경영지원실">경영지원실</option>
             <option value="직속(연구소, 구매팀, 안전환경, 글로벌TF)">직속(연구소, 구매팀, 안전환경, 글로벌TF)</option>
-            <option value="협력사">협력사</option>
-            <option value="기타">기타</option>
         </select>
 
         <label for="department">세부 팀/부서명</label>
         <select id="department" required></select>
-        <input type="text" id="department-text" placeholder="부서명 입력" style="display:none;">
-        <div id="commonDeptNote" class="note-tip" style="display:none; color: #007bff; text-align: left;">
+        <div id="commonDeptNote" class="note-tip" style="display:block; color: #007bff; text-align: left;">
             * 소속 사업부의 소수 팀은 '사업부 공통'으로 보고 가능합니다.
         </div>
 
@@ -109,16 +106,15 @@
         <input type="number" id="evacuated" min="0" required>
         <div class="note-tip">대피 장소에 도착한 인원 수</div>
 
-        <!-- 수정된 내방객 포함 여부 섹션 -->
         <div class="checkbox-group">
-            <label for="hasVisitor">내방객 포함 여부</label>
+            <label for="hasVisitor">내방객 · 협력업체 포함 여부</label>
             <input type="checkbox" id="hasVisitor">
         </div>
 
-        <label for="visitorTotal" id="visitorTotalLabel" style="display:none;">내방객 총 인원</label>
+        <label for="visitorTotal" id="visitorTotalLabel" style="display:none;">내방객 · 협력업체 총 인원</label>
         <input type="number" id="visitorTotal" min="0" placeholder="0" style="display:none;">
 
-        <label for="visitorEvacuated" id="visitorEvacuatedLabel" style="display:none;">내방객 대피완료 인원</label>
+        <label for="visitorEvacuated" id="visitorEvacuatedLabel" style="display:none;">내방객 · 협력업체 대피완료 인원</label>
         <input type="number" id="visitorEvacuated" min="0" placeholder="0" style="display:none;">
 
         <label for="note">특이사항</label>
@@ -145,7 +141,6 @@
     const contactInput = document.getElementById("contact");
     const divisionSelect = document.getElementById("division");
     const departmentSelect = document.getElementById("department");
-    const departmentText = document.getElementById("department-text");
     const commonDeptNote = document.getElementById("commonDeptNote");
     const hasVisitorCheckbox = document.getElementById("hasVisitor");
 
@@ -161,9 +156,7 @@
         'SYSTEM사업부': ['사업부 공통', '영업팀', 'CS팀', '제조팀', '생산기술팀', '품질G'],
         'INFRA사업부': ['사업부 공통', 'ENC사업팀', 'EPC사업팀'],
         '경영지원실': ['사업부 공통', '재무팀', '인사팀', '정보전략팀', '기획G', '준법경영G'],
-        '직속(연구소, 구매팀, 안전환경, 글로벌TF)': ['사업부 공통', '연구소', '구매팀', '안전환경팀', '글로벌TF'],
-        '협력사': [],
-        '기타': []
+        '직속(연구소, 구매팀, 안전환경, 글로벌TF)': ['사업부 공통', '연구소', '구매팀', '안전환경팀', '글로벌TF']
     };
 
     hasVisitorCheckbox.addEventListener('change', function() {
@@ -193,31 +186,20 @@
         const subDepartments = departments[selectedDivision] || [];
         departmentSelect.innerHTML = '';
 
-        if (selectedDivision === '협력사' || selectedDivision === '기타') {
-            departmentSelect.style.display = 'none';
-            departmentText.style.display = 'block';
-            commonDeptNote.style.display = 'none';
-            departmentText.setAttribute('required', 'required');
-            departmentSelect.removeAttribute('required');
-        } else {
-            departmentSelect.style.display = 'block';
-            departmentText.style.display = 'none';
-            commonDeptNote.style.display = 'block';
-            departmentText.removeAttribute('required');
-            departmentSelect.setAttribute('required', 'required');
+        departmentSelect.style.display = 'block';
+        commonDeptNote.style.display = 'block';
+        
+        const defaultOption = document.createElement('option');
+        defaultOption.text = '-- 선택 --';
+        defaultOption.value = '';
+        departmentSelect.appendChild(defaultOption);
 
-            const defaultOption = document.createElement('option');
-            defaultOption.text = '-- 선택 --';
-            defaultOption.value = '';
-            departmentSelect.appendChild(defaultOption);
-
-            subDepartments.forEach(dept => {
-                const option = document.createElement('option');
-                option.value = dept;
-                option.text = dept;
-                departmentSelect.appendChild(option);
-            });
-        }
+        subDepartments.forEach(dept => {
+            const option = document.createElement('option');
+            option.value = dept;
+            option.text = dept;
+            departmentSelect.appendChild(option);
+        });
     });
 
     contactInput.addEventListener("input", function(e) {
@@ -267,7 +249,7 @@
         const reporter = document.getElementById("reporter").value;
         const contact = document.getElementById("contact").value;
         const division = divisionSelect.value;
-        const department = (division === '협력사' || division === '기타') ? departmentText.value : departmentSelect.value;
+        const department = departmentSelect.value;
         const total = parseInt(document.getElementById("total").value);
         const evacuated = parseInt(document.getElementById("evacuated").value);
         const note = document.getElementById("note").value;
@@ -282,11 +264,11 @@
         }
 
         if (hasVisitor && (isNaN(visitorTotal) || isNaN(visitorEvacuated))) {
-            alert("내방객 인원을 숫자로 입력해주세요.");
+            alert("내방객 · 협력업체 인원을 숫자로 입력해주세요.");
             return;
         }
         if (hasVisitor && visitorEvacuated > visitorTotal) {
-            alert("내방객 대피완료 인원이 내방객 총 인원보다 많을 수 없습니다.");
+            alert("내방객 · 협력업체 대피완료 인원이 내방객 총 인원보다 많을 수 없습니다.");
             return;
         }
 
