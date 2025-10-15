@@ -242,6 +242,22 @@
     font-weight: bold;
   }
   #reportForm { display: none; }
+  .report-log-container {
+    max-height: 200px;
+    overflow-y: auto;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    padding: 10px;
+    margin-bottom: 15px;
+  }
+  .report-log-item {
+    padding: 8px;
+    border-bottom: 1px solid #eee;
+    font-size: 0.8rem;
+  }
+  .report-log-item:last-child {
+    border-bottom: none;
+  }
 </style>
 </head>
 <body>
@@ -316,10 +332,11 @@
 <div id="reportPopup" class="popup">
   <div class="popup-content">
     <h3 id="popupTitle"></h3>
-    <div id="reportSummaryContainer">
-      <div style="text-align:center;">
-        <button id="newReportBtn" style="margin-top: 10px;">보고하기</button>
-      </div>
+    
+    <div id="reportLogContainer" class="report-log-container"></div>
+    
+    <div style="text-align:center;">
+      <button id="newReportBtn" style="margin-top: 10px;">보고하기</button>
     </div>
     
     <div id="reportForm">
@@ -362,10 +379,11 @@
 </div>
 
 <script>
-const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbyi307t8us1etL-I0P82NroRAcQAyjvi07v1NgqNAhUbzZDPLd3tZ_-ssGkzuXOVLl4/exec";
-const GOOGLE_SHEET_URL = "https://docs.google.com/spreadsheets/d/1fLIQijY7EtywKy-4ng3tvMm6ZstN7Ua2RKqH7RMxp1Q/edit?gid=0#gid=0";
+const WEBAPP_URL = "https://script.google.com/macros/library/d/1ITDzKXaXDhLleVvpQSPc3muZroCbKgOLt9NTaLBg_JakGOkj0tP2YBXB/14"; // YOUR_APPSSCRIPT_URL 부분을 본인의 App Script URL로 변경하세요.
+const GOOGLE_SHEET_URL = "https://docs.google.com/spreadsheets/d/1fLIQijY7EtywKy-4ng3tvMm6ZstN7Ua2RKqH7RMxp1Q/edit?gid=0#gid=0"; // 본인의 구글 시트 URL로 변경하세요.
 let currentReportData = null;
 let cumulativeReports = {};
+let allReports = []; // 모든 보고서 기록을 저장할 전역 변수
 
 const departments = {
   'SYSTEM사업부': ['사업부 공통', '영업팀', 'CS팀', '제조팀', '생산기술팀', '품질G'],
@@ -387,11 +405,11 @@ async function fetchData() {
   syncStatus.style.display = 'block';
 
   try {
-    const url = `${WEBAPP_URL}`;
-    const res = await fetch(url);
+    const res = await fetch(WEBAPP_URL);
     const data = await res.json();
     if (data.result === "success") {
       cumulativeReports = data.summary || [];
+      allReports = data.allReports || []; // 모든 보고서 기록을 저장
       renderTables(cumulativeReports);
       renderAccordion(cumulativeReports);
     } else {
@@ -423,9 +441,7 @@ function renderTables(summaryData) {
   let grandTotalVisitorRemaining = 0;
 
   const orderedDivisions = ['SYSTEM사업부', 'INFRA사업부', '경영지원실', '직속(연구소, 구매팀, 안전환경, 글로벌TF)', '협력사', '기타'];
-  const departmentMap = new Map(summaryData.map(item => [`${item.division}-${item.department}`, item]));
   
-  // 피벗 테이블에 표시할 데이터
   const pivotData = {};
   orderedDivisions.forEach(div => {
     pivotData[div] = { total: 0, evacuated: 0, remaining: 0 };
@@ -534,12 +550,13 @@ function showPopup(division, department) {
   const popup = document.getElementById("reportPopup");
   const title = document.getElementById("popupTitle");
   const reportForm = document.getElementById("reportForm");
-  const newReportBtn = document.getElementById("newReportBtn");
   
   currentReportData = { division, department };
   title.textContent = `${division} > ${department} 보고`;
   reportForm.style.display = 'block';
-  newReportBtn.style.display = 'none';
+
+  // 팝업이 열릴 때 보고서 로그를 렌더링
+  renderReportLog(division, department);
 
   // 폼 초기화
   document.getElementById("popupTotal").value = '';
@@ -550,13 +567,45 @@ function showPopup(division, department) {
   document.getElementById("popupVisitorTotal").value = '';
   document.getElementById("popupVisitorEvacuated").value = '';
   
-  // 합산 인원/대피 인원은 팝업에서 입력받지 않음
   document.getElementById("popupTotal").disabled = false;
   document.getElementById("popupVisitorTotal").disabled = false;
 
   calculateAllRemaining();
   
   popup.style.display = 'flex';
+}
+
+function renderReportLog(division, department) {
+  const logContainer = document.getElementById("reportLogContainer");
+  logContainer.innerHTML = ''; // 기존 로그 초기화
+
+  // 해당 부서/협력사의 보고서만 필터링
+  const filteredLogs = allReports.filter(report => 
+    report.division === division && report.department === department
+  ).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)); // 최신순 정렬
+
+  if (filteredLogs.length === 0) {
+    logContainer.innerHTML = '<p style="text-align:center; color:#777;">아직 보고된 내용이 없습니다.</p>';
+    return;
+  }
+  
+  filteredLogs.forEach(log => {
+    const logItem = document.createElement('div');
+    logItem.className = 'report-log-item';
+    const reportTime = new Date(log.timestamp).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    
+    let visitorInfo = '';
+    if (log.hasVisitor) {
+      visitorInfo = `<br>- 내방객: 총 ${log.visitorTotal}명, 대피완료 ${log.visitorEvacuated}명, 미대피 ${log.visitorRemaining}명`;
+    }
+    
+    logItem.innerHTML = `
+      <strong>[${reportTime}]</strong> 임직원/협력사: 총 ${log.total}명, 대피완료 ${log.evacuated}명, 미대피 ${log.remaining}명
+      ${visitorInfo}
+      ${log.note ? `<br>- 특이사항: ${log.note}` : ''}
+    `;
+    logContainer.appendChild(logItem);
+  });
 }
 
 function closePopup() {
@@ -631,7 +680,9 @@ async function saveReport() {
 
 document.getElementById("syncBtn").addEventListener('click', fetchData);
 document.getElementById("newReportBtn").addEventListener('click', () => {
-  showPopup(currentReportData.division, currentReportData.department);
+  // 팝업 내 보고 폼을 보이게 함
+  document.getElementById("reportForm").style.display = 'block';
+  document.getElementById("newReportBtn").style.display = 'none';
 });
 document.getElementById("saveBtn").addEventListener('click', saveReport);
 document.getElementById("popupTotal").addEventListener('input', calculateAllRemaining);
