@@ -256,9 +256,9 @@
       <th colspan="3">내방객</th>
     </tr>
     <tr>
-      <th>total</th>
-      <th>evacuated</th>
-      <th>remaining</th>
+      <th>총원</th>
+      <th>대피완료</th>
+      <th>미대피</th>
     </tr>
   </thead>
   <tbody>
@@ -273,13 +273,13 @@
 <table class="summary-table">
   <thead>
     <tr>
-      <th rowspan="2">division</th>
+      <th rowspan="2">구분</th>
       <th colspan="3">임직원 & 협력사</th>
     </tr>
     <tr>
-      <th>total</th>
-      <th>evacuated</th>
-      <th>remaining</th>
+      <th>총원</th>
+      <th>대피완료</th>
+      <th>미대피</th>
     </tr>
   </thead>
   <tbody id="pivotTableBody">
@@ -317,8 +317,6 @@
   <div class="popup-content">
     <h3 id="popupTitle"></h3>
     <div id="reportSummaryContainer">
-      <div id="reportSummaryContent" class="recent-report-summary" style="display:none;"></div>
-      <div id="noReportSummary" style="display:none; text-align:center; color: #777;">아직 보고된 내용이 없습니다.</div>
       <div style="text-align:center;">
         <button id="newReportBtn" style="margin-top: 10px;">보고하기</button>
       </div>
@@ -367,7 +365,7 @@
 const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbyi307t8us1etL-I0P82NroRAcQAyjvi07v1NgqNAhUbzZDPLd3tZ_-ssGkzuXOVLl4/exec";
 const GOOGLE_SHEET_URL = "https://docs.google.com/spreadsheets/d/1fLIQijY7EtywKy-4ng3tvMm6ZstN7Ua2RKqH7RMxp1Q/edit?gid=0#gid=0";
 let currentReportData = null;
-let latestReports = {};
+let cumulativeReports = {};
 
 const departments = {
   'SYSTEM사업부': ['사업부 공통', '영업팀', 'CS팀', '제조팀', '생산기술팀', '품질G'],
@@ -389,23 +387,21 @@ async function fetchData() {
   syncStatus.style.display = 'block';
 
   try {
-    const url = `${WEBAPP_URL}?action=getSummary`;
+    const url = `${WEBAPP_URL}`;
     const res = await fetch(url);
     const data = await res.json();
     if (data.result === "success") {
-      const summary = data.summary || [];
-      latestReports = getLatestReports(summary);
-      const pivotTableData = aggregateDataForPivot(latestReports);
-      renderTables(pivotTableData);
-      renderAccordion(latestReports);
+      cumulativeReports = data.summary || [];
+      renderTables(cumulativeReports);
+      renderAccordion(cumulativeReports);
     } else {
-      console.error("API response failed:", data.message);
-      alert("데이터를 불러오는 중 오류가 발생했습니다: " + data.message);
+      console.error("API response failed:", data.error);
+      alert("데이터를 불러오는 중 오류가 발생했습니다: " + data.error);
     }
   } catch (error) {
     console.error("Error fetching data:", error);
     alert("데이터를 불러오는 중 네트워크 오류가 발생했습니다.");
-    renderTables({ aggregated: {}, visitorData: { total: '-', evacuated: '-', remaining: '-' } });
+    renderTables([]);
     renderAccordion([]);
   } finally {
     syncStatus.style.display = 'none';
@@ -414,66 +410,45 @@ async function fetchData() {
   }
 }
 
-function getLatestReports(summary) {
-  const latest = {};
-  const today = new Date().toLocaleDateString();
-
-  summary.forEach(row => {
-    const rowDate = new Date(row.timestamp).toLocaleDateString();
-    if (today !== rowDate) return;
-
-    const key = `${row.division}-${row.department}`;
-    if (!latest[key] || new Date(row.timestamp) > new Date(latest[key].timestamp)) {
-      latest[key] = row;
-    }
-  });
-  return latest;
-}
-
-function aggregateDataForPivot(latestReports) {
-  const aggregated = {
-    'SYSTEM사업부': { total: 0, evacuated: 0, remaining: 0 },
-    'INFRA사업부': { total: 0, evacuated: 0, remaining: 0 },
-    '경영지원실': { total: 0, evacuated: 0, remaining: 0 },
-    '직속(연구소, 구매팀, 안전환경, 글로벌TF)': { total: 0, evacuated: 0, remaining: 0 },
-    '협력사': { total: 0, evacuated: 0, remaining: 0 },
-    '기타': { total: 0, evacuated: 0, remaining: 0 }
-  };
-  
-  const visitorData = { total: 0, evacuated: 0, remaining: 0 };
-
-  Object.values(latestReports).forEach(row => {
-    const division = row.division;
-    if (row.hasVisitor) {
-      visitorData.total += row.visitorTotal;
-      visitorData.evacuated += row.visitorEvacuated;
-      visitorData.remaining += row.visitorRemaining;
-    }
-
-    if (aggregated[division]) {
-      aggregated[division].total += row.total;
-      aggregated[division].evacuated += row.evacuated;
-      aggregated[division].remaining += row.remaining;
-    }
-  });
-
-  return { aggregated, visitorData };
-}
-
-function renderTables(data) {
+function renderTables(summaryData) {
   const tbody = document.getElementById("pivotTableBody");
   tbody.innerHTML = '';
-  
-  const { aggregated, visitorData } = data;
   
   let grandTotalTotal = 0;
   let grandTotalEvacuated = 0;
   let grandTotalRemaining = 0;
   
+  let grandTotalVisitorTotal = 0;
+  let grandTotalVisitorEvacuated = 0;
+  let grandTotalVisitorRemaining = 0;
+
   const orderedDivisions = ['SYSTEM사업부', 'INFRA사업부', '경영지원실', '직속(연구소, 구매팀, 안전환경, 글로벌TF)', '협력사', '기타'];
+  const departmentMap = new Map(summaryData.map(item => [`${item.division}-${item.department}`, item]));
   
+  // 피벗 테이블에 표시할 데이터
+  const pivotData = {};
+  orderedDivisions.forEach(div => {
+    pivotData[div] = { total: 0, evacuated: 0, remaining: 0 };
+  });
+
+  summaryData.forEach(row => {
+    const division = row.division;
+    if (pivotData[division]) {
+      pivotData[division].total += row.total;
+      pivotData[division].evacuated += row.evacuated;
+      pivotData[division].remaining += row.remaining;
+    }
+    grandTotalTotal += row.total;
+    grandTotalEvacuated += row.evacuated;
+    grandTotalRemaining += row.remaining;
+
+    grandTotalVisitorTotal += row.visitorTotal;
+    grandTotalVisitorEvacuated += row.visitorEvacuated;
+    grandTotalVisitorRemaining += row.visitorRemaining;
+  });
+
   orderedDivisions.forEach(division => {
-    const rowData = aggregated[division] || { total: 0, evacuated: 0, remaining: 0 };
+    const rowData = pivotData[division];
     const row = document.createElement("tr");
     row.innerHTML = `
       <td>${division}</td>
@@ -482,24 +457,22 @@ function renderTables(data) {
       <td>${rowData.remaining}</td>
     `;
     tbody.appendChild(row);
-
-    grandTotalTotal += rowData.total;
-    grandTotalEvacuated += rowData.evacuated;
-    grandTotalRemaining += rowData.remaining;
   });
 
   document.getElementById("grandTotalTotal").textContent = grandTotalTotal;
   document.getElementById("grandTotalEvacuated").textContent = grandTotalEvacuated;
   document.getElementById("grandTotalRemaining").textContent = grandTotalRemaining;
 
-  document.getElementById("grandTotalVisitorTotal").textContent = visitorData.total;
-  document.getElementById("grandTotalVisitorEvacuated").textContent = visitorData.evacuated;
-  document.getElementById("grandTotalVisitorRemaining").textContent = visitorData.remaining;
+  document.getElementById("grandTotalVisitorTotal").textContent = grandTotalVisitorTotal;
+  document.getElementById("grandTotalVisitorEvacuated").textContent = grandTotalVisitorEvacuated;
+  document.getElementById("grandTotalVisitorRemaining").textContent = grandTotalVisitorRemaining;
 }
 
-function renderAccordion(latestReports = {}) {
+function renderAccordion(summaryData) {
   const container = document.getElementById("accordionContainer");
   container.innerHTML = "";
+  
+  const departmentMap = new Map(summaryData.map(item => [`${item.division}-${item.department}`, item]));
 
   for (const division in departments) {
     const item = document.createElement("div");
@@ -512,7 +485,7 @@ function renderAccordion(latestReports = {}) {
 
     const subDepartments = departments[division];
     subDepartments.forEach(deptName => {
-      const report = latestReports[`${division}-${deptName}`];
+      const report = departmentMap.get(`${division}-${deptName}`);
       
       let statusIcon = '⚫';
       let statusClass = 'pending';
@@ -539,7 +512,7 @@ function renderAccordion(latestReports = {}) {
         <span class="dept-name">${deptName}</span>
         <span class="status ${statusClass}">${statusIcon}</span>
       `;
-      deptRow.onclick = () => showPopup(division, deptName, report);
+      deptRow.onclick = () => showPopup(division, deptName);
       content.appendChild(deptRow);
     });
 
@@ -557,81 +530,33 @@ function renderAccordion(latestReports = {}) {
   }
 }
 
-function showPopup(division, department, report) {
+function showPopup(division, department) {
   const popup = document.getElementById("reportPopup");
   const title = document.getElementById("popupTitle");
-  const reportSummaryContainer = document.getElementById("reportSummaryContainer");
-  const reportSummaryContent = document.getElementById("reportSummaryContent");
-  const noReportSummary = document.getElementById("noReportSummary");
   const reportForm = document.getElementById("reportForm");
-
+  const newReportBtn = document.getElementById("newReportBtn");
+  
   currentReportData = { division, department };
   title.textContent = `${division} > ${department} 보고`;
-  
-  reportForm.style.display = 'none';
+  reportForm.style.display = 'block';
+  newReportBtn.style.display = 'none';
 
-  if (report) {
-    const reportTime = new Date(report.timestamp).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
-    let summaryText = `**최근 보고 (${reportTime})**<br>
-      - 임직원/협력사: 총 ${report.total}명 중 ${report.evacuated}명 대피 (${report.remaining}명 미대피)`;
-    if (report.hasVisitor) {
-      summaryText += `<br>- 내방객: 총 ${report.visitorTotal}명 중 ${report.visitorEvacuated}명 대피 (${report.visitorRemaining}명 미대피)`;
-    }
-    if (report.note) {
-      summaryText += `<br>- 특이사항: ${report.note}`;
-    }
-    reportSummaryContent.innerHTML = summaryText;
-    reportSummaryContent.style.display = 'block';
-    noReportSummary.style.display = 'none';
-    document.getElementById("newReportBtn").textContent = "추가 보고";
-    document.getElementById("newReportBtn").onclick = () => openReportForm(report);
-  } else {
-    reportSummaryContent.style.display = 'none';
-    noReportSummary.style.display = 'block';
-    document.getElementById("newReportBtn").textContent = "보고하기";
-    document.getElementById("newReportBtn").onclick = () => openReportForm(null);
-  }
+  // 폼 초기화
+  document.getElementById("popupTotal").value = '';
+  document.getElementById("popupEvacuated").value = '';
+  document.getElementById("popupNotes").value = '';
+  document.getElementById("popupHasVisitor").checked = false;
+  document.getElementById("visitorFields").style.display = 'none';
+  document.getElementById("popupVisitorTotal").value = '';
+  document.getElementById("popupVisitorEvacuated").value = '';
+  
+  // 합산 인원/대피 인원은 팝업에서 입력받지 않음
+  document.getElementById("popupTotal").disabled = false;
+  document.getElementById("popupVisitorTotal").disabled = false;
+
+  calculateAllRemaining();
   
   popup.style.display = 'flex';
-}
-
-function openReportForm(report) {
-  const reportForm = document.getElementById("reportForm");
-  const totalInput = document.getElementById("popupTotal");
-  const evacuatedInput = document.getElementById("popupEvacuated");
-  const notesTextarea = document.getElementById("popupNotes");
-  const hasVisitorCheckbox = document.getElementById("popupHasVisitor");
-  const visitorFieldsDiv = document.getElementById("visitorFields");
-  const visitorTotalInput = document.getElementById("popupVisitorTotal");
-  const visitorEvacuatedInput = document.getElementById("popupVisitorEvacuated");
-  
-  reportForm.style.display = 'block';
-  
-  totalInput.value = '';
-  evacuatedInput.value = '';
-  notesTextarea.value = '';
-  hasVisitorCheckbox.checked = false;
-  visitorFieldsDiv.style.display = 'none';
-  visitorTotalInput.value = '';
-  visitorEvacuatedInput.value = '';
-
-  if (report) {
-    totalInput.value = report.total;
-    totalInput.disabled = true;
-    evacuatedInput.value = report.remaining;
-    
-    hasVisitorCheckbox.checked = report.hasVisitor;
-    visitorFieldsDiv.style.display = report.hasVisitor ? 'block' : 'none';
-    visitorTotalInput.value = report.visitorTotal;
-    visitorTotalInput.disabled = true;
-    visitorEvacuatedInput.value = report.visitorRemaining;
-
-  } else {
-    totalInput.disabled = false;
-    visitorTotalInput.disabled = false;
-  }
-  
-  calculateAllRemaining();
 }
 
 function closePopup() {
@@ -674,38 +599,15 @@ function calculateAllRemaining() {
 }
 
 async function saveReport() {
-  const existingReport = latestReports[`${currentReportData.division}-${currentReportData.department}`];
-
-  let total, evacuated, visitorTotal, visitorEvacuated;
-
-  if (existingReport) {
-    const currentEvacuated = parseInt(document.getElementById("popupEvacuated").value) || 0;
-    const currentVisitorEvacuated = parseInt(document.getElementById("popupVisitorEvacuated").value) || 0;
-    
-    total = existingReport.total;
-    evacuated = existingReport.evacuated + currentEvacuated;
-    
-    visitorTotal = existingReport.visitorTotal;
-    visitorEvacuated = existingReport.visitorEvacuated + currentVisitorEvacuated;
-  } else {
-    total = parseInt(document.getElementById("popupTotal").value) || 0;
-    evacuated = parseInt(document.getElementById("popupEvacuated").value) || 0;
-    visitorTotal = parseInt(document.getElementById("popupVisitorTotal").value) || 0;
-    visitorEvacuated = parseInt(document.getElementById("popupVisitorEvacuated").value) || 0;
-  }
-  
   const dataToSave = {
-    action: 'addReport',
     division: currentReportData.division,
     department: currentReportData.department,
-    total: total,
-    evacuated: evacuated,
-    remaining: total - evacuated,
+    total: parseInt(document.getElementById("popupTotal").value) || 0,
+    evacuated: parseInt(document.getElementById("popupEvacuated").value) || 0,
     note: document.getElementById("popupNotes").value,
     hasVisitor: document.getElementById("popupHasVisitor").checked,
-    visitorTotal: visitorTotal,
-    visitorEvacuated: visitorEvacuated,
-    visitorRemaining: visitorTotal - visitorEvacuated
+    visitorTotal: document.getElementById("popupHasVisitor").checked ? (parseInt(document.getElementById("popupVisitorTotal").value) || 0) : 0,
+    visitorEvacuated: document.getElementById("popupHasVisitor").checked ? (parseInt(document.getElementById("popupVisitorEvacuated").value) || 0) : 0
   };
 
   try {
@@ -717,9 +619,9 @@ async function saveReport() {
     if (result.result === "success") {
       alert("보고가 성공적으로 저장되었습니다.");
       closePopup();
-      fetchData();
+      fetchData(); // 데이터 재호출
     } else {
-      alert("보고 저장 실패: " + result.message);
+      alert("보고 저장 실패: " + result.error);
     }
   } catch (error) {
     console.error("Error saving report:", error);
@@ -729,8 +631,7 @@ async function saveReport() {
 
 document.getElementById("syncBtn").addEventListener('click', fetchData);
 document.getElementById("newReportBtn").addEventListener('click', () => {
-  const latestReportForDept = latestReports[`${currentReportData.division}-${currentReportData.department}`];
-  openReportForm(latestReportForDept);
+  showPopup(currentReportData.division, currentReportData.department);
 });
 document.getElementById("saveBtn").addEventListener('click', saveReport);
 document.getElementById("popupTotal").addEventListener('input', calculateAllRemaining);
