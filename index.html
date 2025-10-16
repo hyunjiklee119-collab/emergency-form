@@ -207,34 +207,6 @@
     });
 
 
-        if (originalLength > 0) {
-            if (value.startsWith("02")) {
-                if (originalLength > 2) {
-                    formattedValue += value.substring(0, 2) + "-";
-                    if (originalLength > 6) {
-                        formattedValue += value.substring(2, 6) + "-";
-                        formattedValue += value.substring(6, 10);
-                    } else {
-                        formattedValue += value.substring(2, 6);
-                    }
-                } else {
-                    formattedValue = value;
-                }
-            } else {
-                if (originalLength > 3) {
-                    formattedValue += value.substring(0, 3) + "-";
-                    if (originalLength > 7) {
-                        formattedValue += value.substring(3, 7) + "-";
-                        formattedValue += value.substring(7, 11);
-                    } else {
-                        formattedValue += value.substring(3, 7);
-                    }
-                } else {
-                    formattedValue = value;
-                }
-            }
-        }
-        e.target.value = formattedValue;
     });
 
     reportForm.addEventListener("submit", async function(e){
