@@ -615,35 +615,58 @@ function closePopup() {
 }
 
 function calculateAllRemaining() {
-  const total = parseInt(document.getElementById("popupTotal").value) || 0;
+  const totalInput = document.getElementById("popupTotal").value;
   const evacuated = parseInt(document.getElementById("popupEvacuated").value) || 0;
-  const remaining = total - evacuated;
   const saveBtn = document.getElementById("saveBtn");
   const remainingInfo = document.getElementById("remaining-info");
   let hasError = false;
 
-  if (remaining < 0) {
-    remainingInfo.innerHTML = `미대피: <span class="negative-warning">⚠️ 음수일 수 없습니다</span>`;
-    hasError = true;
-  } else {
-    remainingInfo.innerHTML = `미대피: ${remaining}명`;
-  }
-
-  const hasVisitor = document.getElementById("popupHasVisitor").checked;
-  const visitorTotal = hasVisitor ? parseInt(document.getElementById("popupVisitorTotal").value) || 0 : 0;
-  const visitorEvacuated = hasVisitor ? parseInt(document.getElementById("popupVisitorEvacuated").value) || 0 : 0;
-  const visitorRemaining = visitorTotal - visitorEvacuated;
-  const visitorRemainingInfo = document.getElementById("visitor-remaining-info");
-
-  if (hasVisitor) {
-    if (visitorRemaining < 0) {
-      visitorRemainingInfo.innerHTML = `내방객 · 협력업체 미대피: <span class="negative-warning">⚠️ 음수일 수 없습니다</span>`;
+  // 임직원 인원 계산 로직
+  if (totalInput.trim() === '') {
+    if (evacuated > 0) {
+      remainingInfo.innerHTML = `미대피: <span class="negative-warning">⚠️ '추가 보고 대상 인원'을 입력해주세요.</span>`;
       hasError = true;
     } else {
-      visitorRemainingInfo.innerHTML = `내방객 · 협력업체 미대피: ${visitorRemaining}명`;
+      remainingInfo.innerHTML = `미대피: 0명`;
     }
   } else {
-    visitorRemainingInfo.innerHTML = '';
+    const total = parseInt(totalInput) || 0;
+    const remaining = total - evacuated;
+    if (remaining < 0) {
+      remainingInfo.innerHTML = `미대피: <span class="negative-warning">⚠️ 대피완료 인원이 더 많을 수 없습니다.</span>`;
+      hasError = true;
+    } else {
+      remainingInfo.innerHTML = `미대피: ${remaining}명`;
+    }
+  }
+
+  // 내방객 · 협력업체 인원 계산 로직
+  const hasVisitor = document.getElementById("popupHasVisitor").checked;
+  const visitorTotalInput = document.getElementById("popupVisitorTotal").value; // ✅ 추가된 변수 선언
+  
+  if (hasVisitor) {
+    const visitorEvacuated = parseInt(document.getElementById("popupVisitorEvacuated").value) || 0;
+    
+    // ✅ 내방객 필드도 임직원 필드와 동일하게 로직 수정
+    if (visitorTotalInput.trim() === '') {
+      if (visitorEvacuated > 0) {
+        document.getElementById("visitor-remaining-info").innerHTML = `내방객 · 협력업체 미대피: <span class="negative-warning">⚠️ '내방객 추가 보고 대상 인원'을 입력해주세요.</span>`;
+        hasError = true;
+      } else {
+        document.getElementById("visitor-remaining-info").innerHTML = `내방객 · 협력업체 미대피: 0명`;
+      }
+    } else {
+      const visitorTotal = parseInt(visitorTotalInput) || 0;
+      const visitorRemaining = visitorTotal - visitorEvacuated;
+      if (visitorRemaining < 0) {
+        document.getElementById("visitor-remaining-info").innerHTML = `내방객 · 협력업체 미대피: <span class="negative-warning">⚠️ 음수일 수 없습니다</span>`;
+        hasError = true;
+      } else {
+        document.getElementById("visitor-remaining-info").innerHTML = `내방객 · 협력업체 미대피: ${visitorRemaining}명`;
+      }
+    }
+  } else {
+    document.getElementById("visitor-remaining-info").innerHTML = '';
   }
 
   saveBtn.disabled = hasError;
