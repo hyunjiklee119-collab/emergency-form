@@ -143,7 +143,6 @@
     const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbwH93qO135K6NFKZ88UnauFty10wfqI8vni1XMzCsp2u8YGObfKxhuSI0nVagzKP6w9/exec";
 
     const reportForm = document.getElementById("reportForm");
-    const contactInput = document.getElementById("contact");
     const divisionSelect = document.getElementById("division");
     const departmentSelect = document.getElementById("department");
     const commonDeptNote = document.getElementById("commonDeptNote");
@@ -207,10 +206,6 @@
         });
     });
 
-    contactInput.addEventListener("input", function(e) {
-        const value = e.target.value.replace(/\D/g, "");
-        const originalLength = value.length;
-        let formattedValue = "";
 
         if (originalLength > 0) {
             if (value.startsWith("02")) {
