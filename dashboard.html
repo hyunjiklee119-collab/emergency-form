@@ -666,6 +666,7 @@ function calculateAllRemaining() {
 }
 
 async function saveReport() {
+  const totalInput = document.getElementById("popupTotal").value;
   const dataToSave = {
     division: currentReportData.division,
     department: currentReportData.department,
