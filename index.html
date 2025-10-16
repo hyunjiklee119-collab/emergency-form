@@ -207,83 +207,82 @@
     });
 
 
-    });
-
     reportForm.addEventListener("submit", async function(e){
-        e.preventDefault();
+    e.preventDefault();
 
-        const privacyConsent = document.getElementById("privacyConsent").checked;
-        if (!privacyConsent) {
-            alert("개인정보 수집 및 이용에 동의해야 보고를 제출할 수 있습니다.");
-            return;
-        }
+    const privacyConsent = document.getElementById("privacyConsent").checked;
+    if (!privacyConsent) {
+        alert("개인정보 수집 및 이용에 동의해야 보고를 제출할 수 있습니다.");
+        return;
+    }
 
-        const reporter = document.getElementById("reporter").value;
-        const contact = document.getElementById("contact").value;
-        const division = divisionSelect.value;
-        const department = departmentSelect.value;
-        const total = parseInt(document.getElementById("total").value);
-        const evacuated = parseInt(document.getElementById("evacuated").value);
-        const note = document.getElementById("note").value;
+    const reporter = document.getElementById("reporter").value;
+    const division = divisionSelect.value;
+    const department = departmentSelect.value;
+    const total = parseInt(document.getElementById("total").value);
+    const evacuated = parseInt(document.getElementById("evacuated").value);
+    const note = document.getElementById("note").value;
 
-        const hasVisitor = hasVisitorCheckbox.checked;
-        const visitorTotal = hasVisitor ? parseInt(visitorTotalInput.value) : 0;
-        const visitorEvacuated = hasVisitor ? parseInt(visitorEvacuatedInput.value) : 0;
+    const hasVisitor = hasVisitorCheckbox.checked;
+    const visitorTotal = hasVisitor ? parseInt(visitorTotalInput.value) : 0;
+    const visitorEvacuated = hasVisitor ? parseInt(visitorEvacuatedInput.value) : 0;
 
-        if (!reporter || !contact || !division || !department || isNaN(total) || isNaN(evacuated)) {
-            alert("모든 필수 항목을 입력해주세요.");
-            return;
-        }
+    // ✅ contact 변수 참조 제거
+    if (!reporter || !division || !department || isNaN(total) || isNaN(evacuated)) {
+        alert("모든 필수 항목을 입력해주세요.");
+        return;
+    }
 
-        if (hasVisitor && (isNaN(visitorTotal) || isNaN(visitorEvacuated))) {
-            alert("내방객 · 협력업체 인원을 숫자로 입력해주세요.");
-            return;
-        }
-        if (hasVisitor && visitorEvacuated > visitorTotal) {
-            alert("내방객 · 협력업체 대피완료 인원이 내방객 총 인원보다 많을 수 없습니다.");
-            return;
-        }
+    if (hasVisitor && (isNaN(visitorTotal) || isNaN(visitorEvacuated))) {
+        alert("내방객 · 협력업체 인원을 숫자로 입력해주세요.");
+        return;
+    }
+    if (hasVisitor && visitorEvacuated > visitorTotal) {
+        alert("내방객 · 협력업체 대피완료 인원이 내방객 총 인원보다 많을 수 없습니다.");
+        return;
+    }
 
-        const remaining = total - evacuated;
-        if (remaining < 0) {
-            alert("대피완료 인원이 대피대상자보다 많을 수 없습니다.");
-            return;
-        }
+    const remaining = total - evacuated;
+    if (remaining < 0) {
+        alert("대피완료 인원이 대피대상자보다 많을 수 없습니다.");
+        return;
+    }
 
-        const data = {reporter, contact, division, department, total, evacuated, remaining, note, hasVisitor, visitorTotal, visitorEvacuated};
+    // ✅ data 객체에서 contact 제거
+    const data = {reporter, division, department, total, evacuated, remaining, note, hasVisitor, visitorTotal, visitorEvacuated};
 
-        submitBtn.disabled = true;
-        submitBtn.classList.add('loading-btn');
-        loadingSpinner.style.display = 'block';
-        submitBtn.childNodes[1].nodeValue = ' 제출 중...';
+    submitBtn.disabled = true;
+    submitBtn.classList.add('loading-btn');
+    loadingSpinner.style.display = 'block';
+    submitBtn.childNodes[1].nodeValue = ' 제출 중...';
 
-        try {
-            const res = await fetch(WEBAPP_URL, {
-                method: "POST",
-                cache: "no-cache",
-                headers: { "Content-Type": "text/plain;charset=utf-8" },
-                body: JSON.stringify(data)
-            });
+    try {
+        const res = await fetch(WEBAPP_URL, {
+            method: "POST",
+            cache: "no-cache",
+            headers: { "Content-Type": "text/plain;charset=utf-8" },
+            body: JSON.stringify(data)
+        });
 
-            const result = await res.json();
+        const result = await res.json();
 
-            if (result.result === "success") {
-                alert("보고가 성공적으로 제출되었습니다.");
-                reportForm.reset();
-            } else {
-                alert("제출 실패: " + (result.error || "알 수 없는 오류"));
-            }
+        if (result.result === "success") {
+            alert("보고가 성공적으로 제출되었습니다.");
+            reportForm.reset();
+        } else {
+            alert("제출 실패: " + (result.error || "알 수 없는 오류"));
+        }
 
-        } catch(err) {
-            console.error(err);
-            alert("오류 발생: 네트워크 연결을 확인하세요.");
-        } finally {
-            submitBtn.disabled = false;
-            submitBtn.classList.remove('loading-btn');
-            loadingSpinner.style.display = 'none';
-            submitBtn.childNodes[1].nodeValue = '보고 제출';
-        }
-    });
+    } catch(err) {
+        console.error(err);
+        alert("오류 발생: 네트워크 연결을 확인하세요.");
+    } finally {
+        submitBtn.disabled = false;
+        submitBtn.classList.remove('loading-btn');
+        loadingSpinner.style.display = 'none';
+        submitBtn.childNodes[1].nodeValue = '보고 제출';
+    }
+    });
 </script>
 
 </body>
