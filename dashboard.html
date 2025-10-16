@@ -554,10 +554,11 @@ function showPopup(division, department) {
   
   currentReportData = { division, department };
   title.textContent = `${division} > ${department} 보고`;
-  reportForm.style.display = 'block';
+  reportForm.style.display = 'none';
 
   // 팝업이 열릴 때 보고서 로그를 렌더링
   renderReportLog(division, department);
+  document.getElementById("newReportBtn").style.display = 'block';
 
   // 폼 초기화
   document.getElementById("popupTotal").value = '';
@@ -652,7 +653,7 @@ async function saveReport() {
   const dataToSave = {
     division: currentReportData.division,
     department: currentReportData.department,
-    total: parseInt(document.getElementById("popupTotal").value) || 0,
+    total: totalInput.trim() === '' ? null : parseInt(totalInput) || 0,
     evacuated: parseInt(document.getElementById("popupEvacuated").value) || 0,
     note: document.getElementById("popupNotes").value,
     hasVisitor: document.getElementById("popupHasVisitor").checked,
@@ -661,7 +662,7 @@ async function saveReport() {
   };
 
   try {
-    const res = await fetch(`${WEBAPP_URL}`, {
+    const res = await fetch(`${WEBAPP_URL}?action=saveReport`, {
       method: 'POST',
       body: JSON.stringify(dataToSave)
     });
